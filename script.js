@@ -198,15 +198,22 @@ for (let oitava = 2; oitava <= 6; oitava++) {
 // ==========================
 // Destaque piano
 // ==========================
-function highlightPiano(nota, anim = true) {
-  clearPianoHighlight();
+function highlightPiano(nota) {
+  clearPianoHighlight(); // remove animação anterior
   const tecla = document.querySelector(`.tecla[data-nota="${nota}"]`);
   if (tecla) {
-    if (!anim) tecla.style.transition = "none";
     tecla.classList.add("tecla-ativa");
-    if (!anim) setTimeout(() => { tecla.style.transition = ""; }, 50);
+    // cor já é mantida pelo CSS
   }
 }
+
+function clearPianoHighlight() {
+  document.querySelectorAll(".tecla").forEach(t => {
+    t.classList.remove("tecla-ativa");
+    // Não alteramos background-color aqui
+  });
+}
+
 
 function clearPianoHighlight() {
   document.querySelectorAll(".tecla").forEach(t => {
