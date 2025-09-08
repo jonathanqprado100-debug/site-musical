@@ -1,6 +1,8 @@
+// ==========================
+// Piano e notas tocadas
+// ==========================
 let synth;
 
-// Piano
 function iniciarNota(nota) {
   synth = new Tone.Synth().toDestination();
   synth.triggerAttack(nota);
@@ -8,100 +10,14 @@ function iniciarNota(nota) {
 }
 
 function pararNota() {
-  if (synth) synth.triggerRelease();
-}
-
-// Microfone
-let audioContext, analyserNode, pitchDetector, input, stream, gainNode;
-
-// Listar microfones disponíveis
-async function listarMicrofones() {
-  const dispositivos = await navigator.mediaDevices.enumerateDevices();
-  const microfones = dispositivos.filter(d => d.kind === "audioinput");
-  const container = document.getElementById("microfones");
-  container.innerHTML = "";
-
-  microfones.forEach((mic, i) => {
-    const btn = document.createElement("button");
-    btn.textContent = mic.label || `Microfone ${i + 1}`;
-    btn.onclick = () => iniciarDeteccao(mic.deviceId);
-    container.appendChild(btn);
-  });
-
-  if (microfones.length === 0) container.textContent = "Nenhum microfone encontrado.";
-}
-
-// Iniciar detecção de nota cantada
-async function iniciarDeteccao(deviceId) {
-  if (stream) stream.getTracks().forEach(track => track.stop());
-
-  audioContext = new AudioContext();
-  stream = await navigator.mediaDevices.getUserMedia({
-    audio: {
-      deviceId: deviceId ? { exact: deviceId } : undefined,
-      echoCancellation: false,
-      noiseSuppression: false,
-      autoGainControl: false
-    }
-  });
-
-  const source = audioContext.createMediaStreamSource(stream);
-
-  gainNode = audioContext.createGain();
-  gainNode.gain.value = 3; 
-  source.connect(gainNode);
-
-  analyserNode = audioContext.createAnalyser();
-  gainNode.connect(analyserNode);
-
-  pitchDetector = Pitchy.createPitchDetector(analyserNode.fftSize, audioContext.sampleRate);
-  input = new Float32Array(analyserNode.fftSize);
-
-  atualizarNota();
-  atualizarMedidorVisual();
-}
-
-// Nota cantada
-function atualizarNota() {
-  analyserNode.getFloatTimeDomainData(input);
-  const [pitch, clarity] = pitchDetector.findPitch(input);
-
-  // Sempre calcular nota, mesmo com clareza baixa
-  if (pitch > 0) {
-    const nota = freqParaNota(pitch);
-    document.getElementById("notaCantada").innerText = `Nota cantada: ${nota}`;
-  } else {
-    document.getElementById("notaCantada").innerText = `Nota cantada: --`;
+  if (synth) {
+    synth.triggerRelease();
   }
-
-  requestAnimationFrame(atualizarNota);
 }
 
-// Medidor visual
-function atualizarMedidorVisual() {
-  analyserNode.getFloatTimeDomainData(input);
-  let soma = 0;
-  for (let i = 0; i < input.length; i++) soma += input[i] * input[i];
-  const rms = Math.sqrt(soma / input.length);
-  const nivel = Math.min(Math.max(rms * 300, 0), 100); // escala 0-100%
-
-  const barra = document.getElementById("medidorBar");
-  barra.style.height = `${nivel}%`;
-
-  requestAnimationFrame(atualizarMedidorVisual);
-}
-
-// Frequência para nota
-function freqParaNota(freq) {
-  const notas = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  const A4 = 440;
-  const semitons = Math.round(12 * Math.log2(freq / A4));
-  const notaIndex = (semitons + 9) % 12;
-  const oitava = 4 + Math.floor((semitons + 9) / 12);
-  return notas[notaIndex] + oitava;
-}
-
-// Piano C1-B6
+// ==========================
+// Gerar piano C1 até B6
+// ==========================
 function gerarPiano() {
   const notas = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
   const piano = document.getElementById("piano");
@@ -120,7 +36,8 @@ function gerarPiano() {
       const nota = n + oitava;
       const key = document.createElement("div");
       key.classList.add("key");
-      key.classList.add(n.includes("#") ? "black" : "white");
+      if (n.includes("#")) key.classList.add("black");
+      else key.classList.add("white");
       key.dataset.nota = nota;
       key.textContent = nota;
 
@@ -138,10 +55,80 @@ function gerarPiano() {
   }
 }
 
-// Músicas
+gerarPiano();
+
+// ==========================
+// Detectar nota cantada
+// ==========================
+let audioContext;
+let pitchDetector;
+let analyserNode;
+let input;
+
+async function iniciarDeteccao() {
+  await Tone.start(); // Libera AudioContext
+
+  if (!audioContext) audioContext = new AudioContext();
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const source = audioContext.createMediaStreamSource(stream);
+  analyserNode = audioContext.createAnalyser();
+
+  // Ganho extra
+  const gainNode = audioContext.createGain();
+  gainNode.gain.value = 3;
+  source.connect(gainNode);
+  gainNode.connect(analyserNode);
+
+  pitchDetector = Pitchy.createPitchDetector(2048, audioContext.sampleRate);
+  input = new Float32Array(analyserNode.fftSize);
+
+  function atualizarNota() {
+    analyserNode.getFloatTimeDomainData(input);
+
+    // Medidor RMS
+    let soma = 0;
+    for (let i = 0; i < input.length; i++) soma += input[i] * input[i];
+    const rms = Math.sqrt(soma / input.length);
+    document.getElementById("nivelSinal").style.width = `${Math.min(rms * 500, 100)}%`;
+
+    // Detectar pitch
+    const [pitch, clarity] = pitchDetector.findPitch(input);
+    if (pitch > 0 && clarity > 0.1) { // qualquer som falado
+      const nota = freqParaNota(pitch);
+      document.getElementById("notaCantada").innerText = `Nota cantada: ${nota}`;
+    } else {
+      document.getElementById("notaCantada").innerText = `Nota cantada: --`;
+    }
+
+    requestAnimationFrame(atualizarNota);
+  }
+
+  atualizarNota();
+}
+
+// ==========================
+// Converter frequência em nota
+// ==========================
+function freqParaNota(freq) {
+  const notas = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  const A4 = 440;
+  const semitons = Math.round(12 * Math.log2(freq / A4));
+  const notaIndex = (semitons + 9) % 12;
+  const oitava = 4 + Math.floor((semitons + 9) / 12);
+  return notas[notaIndex] + oitava;
+}
+
+// ==========================
+// Botão iniciar detecção
+// ==========================
+document.getElementById("btnComecar").addEventListener("click", iniciarDeteccao);
+
+// ==========================
+// Músicas exemplo
+// ==========================
 let musicas = {
-  "Música 1": "C4 – 'A luz que vem do céu...'\nD4 – '...brilha em mim sem véu...'",
-  "Música 2": "G4 – 'No palco da emoção...'\nB4 – '...canto com o coração...'"
+  "Música 1": "C4 – 'Exemplo de letra 1...'\nD4 – 'Segunda linha...'",
+  "Música 2": "E4 – 'Exemplo de letra 2...'\nF4 – 'Segunda linha...'"
 };
 
 function mostrarMenuMusicas() {
@@ -160,7 +147,4 @@ function mostrarMusica(nome) {
   div.innerHTML = `<h3>${nome}</h3><pre>${musicas[nome]}</pre>`;
 }
 
-// Inicialização
-gerarPiano();
 mostrarMenuMusicas();
-listarMicrofones();
