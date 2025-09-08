@@ -63,8 +63,8 @@ document.getElementById("btnComecar").addEventListener("click", async () => {
 
   navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
     audioStream = stream;
-  pitch = ml5.pitchDetection(
-  'https://cdn.jsdelivr.net/npm/@ml5js/crepe-model@1.0.0/',
+pitch = ml5.pitchDetection(
+  'https://cdn.jsdelivr.net/npm/@ml5js/crepe-model@1.0.0',
   stream,
   modelLoaded
 );
@@ -139,4 +139,5 @@ function mostrarMusica(nome){
 }
 
 mostrarMenuMusicas();
+
 
