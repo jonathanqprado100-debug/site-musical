@@ -51,12 +51,7 @@ window.addEventListener("DOMContentLoaded", () => {
       dataArray = new Float32Array(analyser.fftSize);
       detector = PitchDetector.forFloat32Array(analyser.fftSize);
 
-      detectarPitch();
-    } catch (err) {
-      alert("Não foi possível acessar o microfone.");
-      console.error("🚫 Erro ao acessar microfone:", err);
-    }
-  });
+   
 
   document.getElementById("btnParar").addEventListener("click", () => {
     detectando = false;
@@ -93,4 +88,5 @@ window.addEventListener("DOMContentLoaded", () => {
     requestAnimationFrame(detectarPitch);
   }
 });
+
 
