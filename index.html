@@ -2,28 +2,18 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Piano Interativo v3</title>
+  <title>Detecção de Voz</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="style.css">
-
-  <!-- Tone.js para som do piano -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.min.js"></script>
-
-  <!-- Pitchy como módulo, exposto no window -->
-  <script type="module">
-    import { PitchDetector } from "https://esm.sh/pitchy@4";
-    window.PitchDetector = PitchDetector;
-  </script>
-
-  <!-- Script principal como script tradicional -->
   <script src="script.js" defer></script>
 </head>
 <body>
   <div class="container">
-    <h1>🎹 Piano Interativo v3</h1>
+    <h1>🎤 Detecção de Voz</h1>
 
     <section class="microfone">
-      <h2>🎤 Detectar nota cantada</h2>
+      <h2>Detectar nota cantada</h2>
       <div class="controls">
         <button id="btnComecar">Começar detecção</button>
         <button id="btnParar">Parar detecção</button>
@@ -35,18 +25,71 @@
         <div id="nivelSinal" style="height: 10px; background: green; width: 0%;"></div>
       </div>
     </section>
-
-    <section class="piano">
-      <h2>🎹 Piano</h2>
-      <p id="notaTocada">Nota tocada: --</p>
-      <div id="piano"></div>
-    </section>
-
-    <section class="musicas">
-      <h2>🎵 Músicas</h2>
-      <div id="menu-musicas" class="menu-musicas"></div>
-      <div id="conteudo-musica" class="conteudo-musica"></div>
-    </section>
   </div>
+
+  <script type="module">
+    import { PitchDetector } from "https://esm.sh/pitchy@4";
+
+    const btnComecar = document.getElementById("btnComecar");
+    const btnParar = document.getElementById("btnParar");
+    const notaCantada = document.getElementById("notaCantada");
+    const gainKnob = document.getElementById("gainKnob");
+    const nivelSinal = document.getElementById("nivelSinal");
+
+    let audioCtx, analyserNode, mediaStreamSource, gainNode, detector, intervalo;
+
+    btnComecar.addEventListener("click", async () => {
+      audioCtx = new AudioContext();
+      analyserNode = audioCtx.createAnalyser();
+      analyserNode.fftSize = 2048;
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamSource = audioCtx.createMediaStreamSource(stream);
+
+      gainNode = audioCtx.createGain();
+      gainNode.gain.value = parseFloat(gainKnob.value);
+
+      mediaStreamSource.connect(gainNode).connect(analyserNode);
+
+      detector = PitchDetector.forFloat32Array(analyserNode.fftSize);
+
+      intervalo = setInterval(() => {
+        const input = new Float32Array(analyserNode.fftSize);
+        analyserNode.getFloatTimeDomainData(input);
+
+        const [pitch, clarity] = detector.findPitch(input, audioCtx.sampleRate);
+
+        if (clarity > 0.9 && pitch) {
+          const nota = freqParaNota(pitch);
+          notaCantada.innerText = `Nota cantada: ${nota} (${pitch.toFixed(1)} Hz)`;
+        } else {
+          notaCantada.innerText = "Nota cantada: --";
+        }
+
+        const rms = Math.sqrt(input.reduce((sum, val) => sum + val * val, 0) / input.length);
+        nivelSinal.style.width = `${Math.min(rms * 300, 100)}%`;
+      }, 100);
+    });
+
+    btnParar.addEventListener("click", () => {
+      clearInterval(intervalo);
+      notaCantada.innerText = "Nota cantada: --";
+      if (audioCtx) audioCtx.close();
+    });
+
+    gainKnob.addEventListener("input", () => {
+      if (gainNode) {
+        gainNode.gain.value = parseFloat(gainKnob.value);
+      }
+    });
+
+    function freqParaNota(freq) {
+      const notas = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+      const notaIndex = Math.round(12 * Math.log2(freq / 440)) + 57;
+      const nota = notas[notaIndex % 12];
+      const oitava = Math.floor(notaIndex / 12);
+      return `${nota}${oitava}`;
+    }
+  </script>
 </body>
 </html>
