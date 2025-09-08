@@ -1,36 +1,23 @@
-// Piano interativo
 let synth;
 
-// Iniciar nota tocada no piano
+// Piano
 function iniciarNota(nota) {
   synth = new Tone.Synth().toDestination();
   synth.triggerAttack(nota);
   document.getElementById("notaTocada").innerText = `Nota tocada: ${nota}`;
 }
 
-// Parar nota tocada
 function pararNota() {
   if (synth) synth.triggerRelease();
 }
 
-// Função para tocar nota rápida (opcional)
-function tocarNota(nota) {
-  const s = new Tone.Synth().toDestination();
-  s.triggerAttackRelease(nota, "1s");
-}
+// Microfone
+let audioContext, analyserNode, pitchDetector, input, stream, gainNode;
 
-// Variáveis para nota cantada
-let audioContext;
-let analyserNode;
-let pitchDetector;
-let input;
-let stream;
-
-// Lista de microfones disponíveis
+// Listar microfones disponíveis
 async function listarMicrofones() {
   const dispositivos = await navigator.mediaDevices.enumerateDevices();
   const microfones = dispositivos.filter(d => d.kind === "audioinput");
-  
   const container = document.getElementById("microfones");
   container.innerHTML = "";
 
@@ -41,32 +28,27 @@ async function listarMicrofones() {
     container.appendChild(btn);
   });
 
-  if (microfones.length === 0) {
-    container.textContent = "Nenhum microfone encontrado.";
-  }
+  if (microfones.length === 0) container.textContent = "Nenhum microfone encontrado.";
 }
 
 // Iniciar detecção de nota cantada
 async function iniciarDeteccao(deviceId) {
-  if (stream) {
-    stream.getTracks().forEach(track => track.stop());
-  }
+  if (stream) stream.getTracks().forEach(track => track.stop());
 
   audioContext = new AudioContext();
-  stream = await navigator.mediaDevices.getUserMedia({ 
-    audio: { 
+  stream = await navigator.mediaDevices.getUserMedia({
+    audio: {
       deviceId: deviceId ? { exact: deviceId } : undefined,
       echoCancellation: false,
       noiseSuppression: false,
       autoGainControl: false
-    } 
+    }
   });
-  
+
   const source = audioContext.createMediaStreamSource(stream);
 
-  // Aumentando ganho do microfone
-  const gainNode = audioContext.createGain();
-  gainNode.gain.value = 3; // valor ajustável para aumentar sensibilidade
+  gainNode = audioContext.createGain();
+  gainNode.gain.value = 3; 
   source.connect(gainNode);
 
   analyserNode = audioContext.createAnalyser();
@@ -76,14 +58,15 @@ async function iniciarDeteccao(deviceId) {
   input = new Float32Array(analyserNode.fftSize);
 
   atualizarNota();
+  atualizarMedidorVisual();
 }
 
-// Atualizar nota cantada
+// Nota cantada
 function atualizarNota() {
   analyserNode.getFloatTimeDomainData(input);
   const [pitch, clarity] = pitchDetector.findPitch(input);
 
-  if (clarity > 0.7 && pitch > 0) { // clareza menor para aumentar sensibilidade
+  if (clarity > 0.7 && pitch > 0) {
     const nota = freqParaNota(pitch);
     document.getElementById("notaCantada").innerText = `Nota cantada: ${nota}`;
   } else {
@@ -93,7 +76,21 @@ function atualizarNota() {
   requestAnimationFrame(atualizarNota);
 }
 
-// Converter frequência para nota musical
+// Medidor visual
+function atualizarMedidorVisual() {
+  analyserNode.getFloatTimeDomainData(input);
+  let soma = 0;
+  for (let i = 0; i < input.length; i++) soma += input[i] * input[i];
+  const rms = Math.sqrt(soma / input.length);
+  const nivel = Math.min(Math.max(rms * 300, 0), 100); // escala 0-100%
+
+  const barra = document.getElementById("medidorBar");
+  barra.style.height = `${nivel}%`;
+
+  requestAnimationFrame(atualizarMedidorVisual);
+}
+
+// Frequência para nota
 function freqParaNota(freq) {
   const notas = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
   const A4 = 440;
@@ -103,7 +100,7 @@ function freqParaNota(freq) {
   return notas[notaIndex] + oitava;
 }
 
-// Gerar piano de C1 até B6
+// Piano C1-B6
 function gerarPiano() {
   const notas = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
   const piano = document.getElementById("piano");
@@ -140,13 +137,12 @@ function gerarPiano() {
   }
 }
 
-// Lista de músicas
+// Músicas
 let musicas = {
   "Música 1": "C4 – 'A luz que vem do céu...'\nD4 – '...brilha em mim sem véu...'",
   "Música 2": "G4 – 'No palco da emoção...'\nB4 – '...canto com o coração...'"
 };
 
-// Gerar menu de músicas
 function mostrarMenuMusicas() {
   const menu = document.getElementById("menu-musicas");
   menu.innerHTML = "";
@@ -158,7 +154,6 @@ function mostrarMenuMusicas() {
   });
 }
 
-// Mostrar música selecionada
 function mostrarMusica(nome) {
   const div = document.getElementById("conteudo-musica");
   div.innerHTML = `<h3>${nome}</h3><pre>${musicas[nome]}</pre>`;
