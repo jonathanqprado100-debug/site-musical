@@ -66,7 +66,8 @@ function atualizarNota() {
   analyserNode.getFloatTimeDomainData(input);
   const [pitch, clarity] = pitchDetector.findPitch(input);
 
-  if (clarity > 0.7 && pitch > 0) {
+  // Sempre calcular nota, mesmo com clareza baixa
+  if (pitch > 0) {
     const nota = freqParaNota(pitch);
     document.getElementById("notaCantada").innerText = `Nota cantada: ${nota}`;
   } else {
