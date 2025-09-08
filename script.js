@@ -3,7 +3,7 @@
 // ==========================
 let synth;
 async function iniciarNota(nota) {
-  await Tone.start(); // Garante que o áudio está liberado
+  await Tone.start();
   synth = new Tone.Synth().toDestination();
   synth.triggerAttack(nota);
   document.getElementById("notaTocada").innerText = `Nota tocada: ${nota}`;
@@ -38,7 +38,6 @@ function gerarPiano() {
     });
   }
 
-  // Posicionar pretas
   const whiteKeys = Array.from(document.querySelectorAll('.white'));
   const blackKeys = Array.from(document.querySelectorAll('.black'));
   blackKeys.forEach((black, idx)=>{
@@ -52,27 +51,34 @@ gerarPiano();
 // ==========================
 // Microfone e pitch detection ml5.js CREPE
 // ==========================
-let mic, pitch;
+let pitch;
 let detectando = false;
+let audioStream;
 
 document.getElementById("btnComecar").addEventListener("click", async () => {
   if(detectando) return;
   detectando = true;
 
   await Tone.start();
-  mic = new p5.AudioIn();
-  mic.start(async ()=> {
-    pitch = await ml5.pitchDetection(
+
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+    audioStream = stream;
+    pitch = ml5.pitchDetection(
       'https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/pitch-detection/crepe/',
-      mic.stream,
+      stream,
       modelLoaded
     );
+  }).catch(err => {
+    console.error("Erro ao acessar o microfone:", err);
+    alert("Não foi possível acessar o microfone.");
   });
 });
 
-document.getElementById("btnParar").addEventListener("click", ()=>{
+document.getElementById("btnParar").addEventListener("click", () => {
   detectando = false;
-  if(mic) mic.stop();
+  if(audioStream){
+    audioStream.getTracks().forEach(track => track.stop());
+  }
   document.getElementById("notaCantada").innerText = 'Nota cantada: --';
   document.getElementById("nivelSinal").style.width = '0%';
 });
