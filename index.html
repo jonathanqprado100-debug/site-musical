@@ -7,19 +7,21 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.min.js"></script>
 </head>
 <body>
-
   <h2>🎼 Piano C2 até B6</h2>
   <p>Clique ou toque nas teclas para ouvir as notas.</p>
 
+  <h3>🎹 Piano Interativo</h3>
   <div id="piano"></div>
   <p id="notaTocada">Nota tocada: --</p>
 
-  <h3>🎤 Detecção de nota cantada</h3>
+  <h3>🎤 Detectar nota cantada</h3>
   <select id="selectMicrofone"></select>
   <button id="btnComecar">Começar</button>
   <button id="btnParar">Parar</button>
   <p id="notaCantada">Nota cantada: --</p>
-  <div id="medidorFundo"><div id="nivelSinal"></div></div>
+  <div id="nivelSinalContainer">
+    <div id="nivelSinal"></div>
+  </div>
 
   <h2>🎵 Músicas</h2>
   <div id="menu-musicas"></div>
