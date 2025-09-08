@@ -15,6 +15,16 @@ document.getElementById("btnComecar").addEventListener("click", async () => {
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
   analyser = audioContext.createAnalyser();
   analyser.fftSize = 2048;
+  function freqParaNota(freq) {
+  if (!freq || freq <= 0) return '--';
+  const notas = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const A4 = 440;
+  const semitons = Math.round(12 * Math.log2(freq / A4));
+  const notaIndex = (semitons + 9) % 12;
+  const oitava = 4 + Math.floor((semitons + 9) / 12);
+  return notas[notaIndex] + oitava;
+}
+
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -73,3 +83,4 @@ function detectarFrequencia() {
 
   requestAnimationFrame(detectarFrequencia);
 }
+
