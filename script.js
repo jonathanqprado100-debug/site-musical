@@ -65,82 +65,100 @@ function gerarPiano() {
 gerarPiano();
 
 // ==========================
-// Microfone e pitch detection via Web Audio API
+// Microfone e pitch detection via Web Audio API + ganho ajustável
 // ==========================
 let audioContext;
 let analyser;
 let dataArray;
 let sourceNode;
+let gainNode;
 let detectando = false;
 
+// Criar knob para controle de ganho
+const container = document.getElementById("nivelSinalContainer");
+const knob = document.createElement("input");
+knob.type = "range";
+knob.min = 0;
+knob.max = 2;
+knob.step = 0.01;
+knob.value = 1;
+knob.style.width = "100%";
+container.appendChild(knob);
+
 document.getElementById("btnComecar").addEventListener("click", async () => {
-  if (detectando) {
-    console.warn("[DEBUG] Já está detectando");
-    return;
-  }
+  if (detectando) return;
   detectando = true;
-  console.log("[DEBUG] Iniciando detecção de frequência...");
 
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
   analyser = audioContext.createAnalyser();
-  analyser.fftSize = 2048;
+  analyser.fftSize = 32768; // maior fft para notas baixas
+  const bufferLength = analyser.fftSize;
+  dataArray = new Float32Array(bufferLength);
+
+  gainNode = audioContext.createGain();
+  gainNode.gain.value = parseFloat(knob.value);
+
+  knob.addEventListener("input", () => {
+    gainNode.gain.value = parseFloat(knob.value);
+  });
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    console.log("[DEBUG] Microfone acessado com sucesso");
     sourceNode = audioContext.createMediaStreamSource(stream);
-    sourceNode.connect(analyser);
-
-    const bufferLength = analyser.frequencyBinCount;
-    dataArray = new Float32Array(bufferLength);
+    sourceNode.connect(gainNode).connect(analyser);
 
     detectarFrequencia();
   } catch (err) {
-    console.error("[ERRO] Falha ao acessar microfone:", err);
     alert("Não foi possível acessar o microfone.");
   }
 });
 
 document.getElementById("btnParar").addEventListener("click", () => {
-  console.log("[DEBUG] Parando detecção de frequência");
   detectando = false;
-  if (sourceNode) {
-    sourceNode.disconnect();
-  }
+  if (sourceNode) sourceNode.disconnect();
+  if (gainNode) gainNode.disconnect();
   document.getElementById("notaCantada").innerText = 'Nota cantada: --';
   document.getElementById("nivelSinal").style.width = '0%';
 });
 
+// ==========================
+// Autocorrelação simples para detectar pitch
+// ==========================
 function detectarFrequencia() {
-  if (!detectando) {
-    console.warn("[DEBUG] detectando = false, encerrando loop");
-    return;
-  }
+  if (!detectando) return;
 
-  analyser.getFloatFrequencyData(dataArray);
+  analyser.getFloatTimeDomainData(dataArray);
+  const freq = autoCorrelacao(dataArray, audioContext.sampleRate);
 
-  let maxIndex = 0;
-  for (let i = 1; i < dataArray.length; i++) {
-    if (dataArray[i] > dataArray[maxIndex]) {
-      maxIndex = i;
-    }
-  }
-
-  const sampleRate = audioContext.sampleRate;
-  const freq = maxIndex * sampleRate / analyser.fftSize;
-
-  if (freq > 65 && freq < 2000) {
+  if (freq > 50 && freq < 2000) { // filtro mínimo 50 Hz
     const nota = freqParaNota(freq);
-    console.log(`[DEBUG] Frequência detectada: ${freq.toFixed(2)} Hz → Nota: ${nota}`);
     document.getElementById("notaCantada").innerText = 'Nota cantada: ' + nota;
     document.getElementById("nivelSinal").style.width = '100%';
   } else {
-    console.log("[DEBUG] Nenhuma frequência válida detectada");
     document.getElementById("notaCantada").innerText = 'Nota cantada: --';
     document.getElementById("nivelSinal").style.width = '0%';
   }
 
   requestAnimationFrame(detectarFrequencia);
+}
+
+function autoCorrelacao(buf, sampleRate) {
+  let size = buf.length;
+  let rms = 0;
+  for (let i = 0; i < size; i++) rms += buf[i]*buf[i];
+  rms = Math.sqrt(rms/size);
+  if (rms < 0.01) return -1;
+
+  let maxCorr = 0;
+  let bestOffset = -1;
+  for (let offset = 32; offset < size/2; offset++) {
+    let corr = 0;
+    for (let i = 0; i < size - offset; i++) corr += buf[i]*buf[i+offset];
+    if (corr > maxCorr) { maxCorr = corr; bestOffset = offset; }
+  }
+
+  if (bestOffset <= 0) return -1;
+  return sampleRate / bestOffset;
 }
 
 // ==========================
@@ -160,13 +178,11 @@ function mostrarMenuMusicas() {
     btn.onclick = () => mostrarMusica(nome);
     menu.appendChild(btn);
   });
-  console.log("[DEBUG] Menu de músicas carregado");
 }
 
 function mostrarMusica(nome) {
   const div = document.getElementById("conteudo-musica");
-  div.innerHTML = `<h3>v1 - ${nome}</h3><pre>${musicas[nome]}</pre>`;
-  console.log(`[DEBUG] Música exibida: ${nome}`);
+  div.innerHTML = `<h3>v3 - ${nome}</h3><pre>${musicas[nome]}</pre>`;
 }
 
 mostrarMenuMusicas();
