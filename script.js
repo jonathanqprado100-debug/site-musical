@@ -16,14 +16,12 @@ function freqParaNota(freq) {
 // ==========================
 let synth;
 async function iniciarNota(nota) {
-  console.log(`[DEBUG] Iniciando nota: ${nota}`);
   await Tone.start();
   synth = new Tone.Synth().toDestination();
   synth.triggerAttack(nota);
   document.getElementById("notaTocada").innerText = `Nota tocada: ${nota}`;
 }
 function pararNota() {
-  console.log(`[DEBUG] Parando nota`);
   if (synth) synth.triggerRelease();
 }
 
@@ -59,53 +57,67 @@ function gerarPiano() {
     const leftWhite = whiteKeys[idx];
     if (leftWhite) black.style.left = `${leftWhite.offsetLeft + 30}px`;
   });
-
-  console.log(`[DEBUG] Piano gerado com ${whiteKeys.length + blackKeys.length} teclas`);
 }
 gerarPiano();
 
 // ==========================
-// Microfone e pitch detection via Web Audio API + ganho ajustável
+// Autocorrelação para pitch detection
 // ==========================
-let audioContext;
-let analyser;
-let dataArray;
-let sourceNode;
-let gainNode;
-let detectando = false;
+function autoCorrelate(buf, sampleRate) {
+  let SIZE = buf.length;
+  let rms = 0;
 
-// Criar knob para controle de ganho
-const container = document.getElementById("nivelSinalContainer");
-const knob = document.createElement("input");
-knob.type = "range";
-knob.min = 0;
-knob.max = 2;
-knob.step = 0.01;
-knob.value = 1;
-knob.style.width = "100%";
-container.appendChild(knob);
+  for (let i = 0; i < SIZE; i++) {
+    rms += buf[i]*buf[i];
+  }
+  rms = Math.sqrt(rms/SIZE);
+  if (rms < 0.01) return -1; // sinal muito baixo
+
+  let r1 = 0, r2 = SIZE-1;
+  for (let i=0; i<SIZE/2; i++) if (Math.abs(buf[i]) < 0.02){ r1=i; break; }
+  for (let i=1; i<SIZE/2; i++) if (Math.abs(buf[SIZE-i]) < 0.02){ r2=SIZE-i; break; }
+
+  buf = buf.slice(r1, r2);
+  SIZE = buf.length;
+
+  let c = new Array(SIZE).fill(0);
+  for (let i=0; i<SIZE; i++)
+    for (let j=0; j<SIZE-i; j++)
+      c[i] = c[i] + buf[j]*buf[j+i];
+
+  let d = 0; while (c[d] > c[d+1]) d++;
+  let maxval = -1, maxpos=-1;
+  for (let i=d; i<SIZE; i++) {
+    if (c[i] > maxval) { maxval = c[i]; maxpos=i; }
+  }
+
+  if(maxpos === 0) return -1;
+  return sampleRate/maxpos;
+}
+
+// ==========================
+// Microfone e pitch detection
+// ==========================
+let audioContext, analyser, dataArray, sourceNode, detectando=false, gainNode;
 
 document.getElementById("btnComecar").addEventListener("click", async () => {
-  if (detectando) return;
+  if(detectando) return;
   detectando = true;
 
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
   analyser = audioContext.createAnalyser();
-  analyser.fftSize = 32768; // maior fft para notas baixas
-  const bufferLength = analyser.fftSize;
-  dataArray = new Float32Array(bufferLength);
+  analyser.fftSize = 32768;
 
   gainNode = audioContext.createGain();
-  gainNode.gain.value = parseFloat(knob.value);
-
-  knob.addEventListener("input", () => {
-    gainNode.gain.value = parseFloat(knob.value);
-  });
+  gainNode.gain.value = parseFloat(document.getElementById("gainControl").value);
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
     sourceNode = audioContext.createMediaStreamSource(stream);
     sourceNode.connect(gainNode).connect(analyser);
+
+    const bufferLength = analyser.fftSize;
+    dataArray = new Float32Array(bufferLength);
 
     detectarFrequencia();
   } catch (err) {
@@ -114,23 +126,23 @@ document.getElementById("btnComecar").addEventListener("click", async () => {
 });
 
 document.getElementById("btnParar").addEventListener("click", () => {
-  detectando = false;
-  if (sourceNode) sourceNode.disconnect();
-  if (gainNode) gainNode.disconnect();
+  detectando=false;
+  if(sourceNode) sourceNode.disconnect();
   document.getElementById("notaCantada").innerText = 'Nota cantada: --';
   document.getElementById("nivelSinal").style.width = '0%';
 });
 
-// ==========================
-// Autocorrelação simples para detectar pitch
-// ==========================
+document.getElementById("gainControl").addEventListener("input", (e)=>{
+  if(gainNode) gainNode.gain.value = parseFloat(e.target.value);
+});
+
 function detectarFrequencia() {
-  if (!detectando) return;
+  if(!detectando) return;
 
   analyser.getFloatTimeDomainData(dataArray);
-  const freq = autoCorrelacao(dataArray, audioContext.sampleRate);
+  const freq = autoCorrelate(dataArray, audioContext.sampleRate);
 
-  if (freq > 50 && freq < 2000) { // filtro mínimo 50 Hz
+  if(freq > 65 && freq < 2000){
     const nota = freqParaNota(freq);
     document.getElementById("notaCantada").innerText = 'Nota cantada: ' + nota;
     document.getElementById("nivelSinal").style.width = '100%';
@@ -140,25 +152,6 @@ function detectarFrequencia() {
   }
 
   requestAnimationFrame(detectarFrequencia);
-}
-
-function autoCorrelacao(buf, sampleRate) {
-  let size = buf.length;
-  let rms = 0;
-  for (let i = 0; i < size; i++) rms += buf[i]*buf[i];
-  rms = Math.sqrt(rms/size);
-  if (rms < 0.01) return -1;
-
-  let maxCorr = 0;
-  let bestOffset = -1;
-  for (let offset = 32; offset < size/2; offset++) {
-    let corr = 0;
-    for (let i = 0; i < size - offset; i++) corr += buf[i]*buf[i+offset];
-    if (corr > maxCorr) { maxCorr = corr; bestOffset = offset; }
-  }
-
-  if (bestOffset <= 0) return -1;
-  return sampleRate / bestOffset;
 }
 
 // ==========================
@@ -172,17 +165,15 @@ let musicas = {
 function mostrarMenuMusicas() {
   const menu = document.getElementById("menu-musicas");
   menu.innerHTML = "";
-  Object.keys(musicas).forEach(nome => {
+  Object.keys(musicas).forEach(nome=>{
     const btn = document.createElement("button");
     btn.textContent = nome;
-    btn.onclick = () => mostrarMusica(nome);
+    btn.onclick = ()=>mostrarMusica(nome);
     menu.appendChild(btn);
   });
 }
-
-function mostrarMusica(nome) {
+function mostrarMusica(nome){
   const div = document.getElementById("conteudo-musica");
   div.innerHTML = `<h3>v3 - ${nome}</h3><pre>${musicas[nome]}</pre>`;
 }
-
 mostrarMenuMusicas();
