@@ -2,7 +2,8 @@
 // Piano e notas tocadas
 // ==========================
 let synth;
-function iniciarNota(nota) {
+async function iniciarNota(nota) {
+  await Tone.start(); // Garante que o áudio está liberado
   synth = new Tone.Synth().toDestination();
   synth.triggerAttack(nota);
   document.getElementById("notaTocada").innerText = `Nota tocada: ${nota}`;
@@ -19,7 +20,7 @@ function gerarPiano() {
   const piano = document.getElementById("piano");
 
   for(let oitava=2; oitava<=6; oitava++){
-    notas.forEach((n, i)=>{
+    notas.forEach((n)=> {
       const nota = n+oitava;
       const key = document.createElement("div");
       key.classList.add("key");
@@ -60,8 +61,12 @@ document.getElementById("btnComecar").addEventListener("click", async () => {
 
   await Tone.start();
   mic = new p5.AudioIn();
-  mic.start(async ()=>{
-    pitch = await ml5.pitchDetection('https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/pitch-detection/crepe/', mic.stream, modelLoaded);
+  mic.start(async ()=> {
+    pitch = await ml5.pitchDetection(
+      'https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/pitch-detection/crepe/',
+      mic.stream,
+      modelLoaded
+    );
   });
 });
 
