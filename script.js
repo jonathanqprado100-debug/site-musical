@@ -1,4 +1,14 @@
 const PitchDetector = window.PitchDetector;
+window.addEventListener("DOMContentLoaded", async () => {
+  console.log("🎬 DOM carregado");
+
+  // Aguarda até que PitchDetector esteja disponível
+  while (!window.PitchDetector) {
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+
+  const PitchDetector = window.PitchDetector;
+
 
 window.addEventListener("DOMContentLoaded", () => {
   console.log("🎬 DOM carregado");
@@ -83,3 +93,4 @@ window.addEventListener("DOMContentLoaded", () => {
     requestAnimationFrame(detectarPitch);
   }
 });
+
