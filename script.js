@@ -16,22 +16,13 @@ function pararNota() {
 }
 
 // ==========================
-// Gerar piano C1 até B6
+// Gerar piano horizontal C2 até B6
 // ==========================
 function gerarPiano() {
   const notas = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
   const piano = document.getElementById("piano");
 
-  for (let oitava = 1; oitava <= 6; oitava++) {
-    const container = document.createElement("div");
-    container.classList.add("oitava");
-    const titulo = document.createElement("h4");
-    titulo.textContent = `Oitava ${oitava}`;
-    container.appendChild(titulo);
-
-    const teclas = document.createElement("div");
-    teclas.classList.add("teclas");
-
+  for (let oitava = 2; oitava <= 6; oitava++) {
     notas.forEach(n => {
       const nota = n + oitava;
       const key = document.createElement("div");
@@ -47,31 +38,25 @@ function gerarPiano() {
       key.addEventListener("touchstart", () => iniciarNota(nota));
       key.addEventListener("touchend", pararNota);
 
-      teclas.appendChild(key);
+      piano.appendChild(key);
     });
-
-    container.appendChild(teclas);
-    piano.appendChild(container);
   }
 }
 
 gerarPiano();
 
 // ==========================
-// Detectar nota cantada
+// Detectar nota cantada via Web Audio API
 // ==========================
 let audioContext;
-let pitchDetector;
 let analyserNode;
 let input;
 let stream;
-let source;
 let detectando = false;
 
 async function listarMicrofones() {
   const devices = await navigator.mediaDevices.enumerateDevices();
   const select = document.getElementById("selectMicrofone");
-  if (!select) return;
   select.innerHTML = "";
   devices.forEach(d => {
     if (d.kind === "audioinput") {
@@ -96,15 +81,15 @@ async function iniciarDeteccao() {
   if (stream) stream.getTracks().forEach(track => track.stop());
 
   stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId } });
-  source = audioContext.createMediaStreamSource(stream);
+  const source = audioContext.createMediaStreamSource(stream);
   analyserNode = audioContext.createAnalyser();
+  analyserNode.fftSize = 2048;
 
   const gainNode = audioContext.createGain();
   gainNode.gain.value = 3; // aumentar sinal
   source.connect(gainNode);
   gainNode.connect(analyserNode);
 
-  pitchDetector = Pitchy.createPitchDetector(2048, audioContext.sampleRate);
   input = new Float32Array(analyserNode.fftSize);
 
   function atualizarNota() {
@@ -119,8 +104,8 @@ async function iniciarDeteccao() {
     document.getElementById("nivelSinal").style.width = `${Math.min(rms * 500, 100)}%`;
 
     // Detectar pitch
-    const [pitch, clarity] = pitchDetector.findPitch(input);
-    if (pitch > 0 && clarity > 0.05) {
+    const pitch = detectarPitch(input, audioContext.sampleRate);
+    if (pitch > 0) {
       const nota = freqParaNota(pitch);
       document.getElementById("notaCantada").innerText = `Nota cantada: ${nota}`;
     } else {
@@ -138,6 +123,29 @@ function pararDeteccao() {
   if (stream) stream.getTracks().forEach(track => track.stop());
   document.getElementById("nivelSinal").style.width = `0%`;
   document.getElementById("notaCantada").innerText = `Nota cantada: --`;
+}
+
+// ==========================
+// Detectar frequência dominante (autocorrelation simples)
+// ==========================
+function detectarPitch(buffer, sampleRate) {
+  let size = buffer.length;
+  let maxCorr = 0;
+  let bestOffset = -1;
+
+  for (let offset = 32; offset < size / 2; offset++) {
+    let corr = 0;
+    for (let i = 0; i < size - offset; i++) {
+      corr += buffer[i] * buffer[i + offset];
+    }
+    if (corr > maxCorr) {
+      maxCorr = corr;
+      bestOffset = offset;
+    }
+  }
+
+  if (bestOffset === -1) return -1;
+  return sampleRate / bestOffset;
 }
 
 // ==========================
