@@ -20,23 +20,15 @@ function gerarPiano() {
   const notas = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
   const piano = document.getElementById("piano");
 
-  let whiteIndex = 0;
-
-  for(let oitava=2; oitava<=6; oitava++) {
-    notas.forEach(n => {
+  for (let oitava = 2; oitava <= 6; oitava++) {
+    notas.forEach((n, i) => {
       const nota = n + oitava;
       const key = document.createElement("div");
       key.classList.add("key");
+      if (n.includes("#")) key.classList.add("black");
+      else key.classList.add("white");
       key.dataset.nota = nota;
       key.textContent = n;
-
-      if(n.includes("#")) {
-        key.classList.add("black");
-        key.style.left = `${whiteIndex*40 - 15}px`;
-      } else {
-        key.classList.add("white");
-        whiteIndex++;
-      }
 
       key.addEventListener("mousedown", () => iniciarNota(nota));
       key.addEventListener("mouseup", pararNota);
@@ -52,9 +44,13 @@ function gerarPiano() {
 gerarPiano();
 
 // ==========================
-// Microfone e pitch detection
+// Microfone e pitch detection via Meyda
 // ==========================
-let audioContext, analyserNode, input, stream;
+let audioContext;
+let sourceNode;
+let gainNode;
+let analyzer;
+let stream;
 let detectando = false;
 
 async function listarMicrofones() {
@@ -65,15 +61,12 @@ async function listarMicrofones() {
     if(d.kind === "audioinput") {
       const option = document.createElement("option");
       option.value = d.deviceId;
-      option.textContent = d.label || `Microfone ${select.length+1}`;
+      option.textContent = d.label || `Microfone ${select.length + 1}`;
       select.appendChild(option);
     }
   });
 }
 
-// ==========================
-// Iniciar detecção
-// ==========================
 async function iniciarDeteccao() {
   if(detectando) return;
   detectando = true;
@@ -86,85 +79,51 @@ async function iniciarDeteccao() {
 
   if(stream) stream.getTracks().forEach(track => track.stop());
 
-  stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId }});
-  const source = audioContext.createMediaStreamSource(stream);
+  stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId } });
+  sourceNode = audioContext.createMediaStreamSource(stream);
+  gainNode = audioContext.createGain();
+  gainNode.gain.value = 3;
+  sourceNode.connect(gainNode);
 
-  analyserNode = audioContext.createAnalyser();
-  analyserNode.fftSize = 32768; // Aumentado para graves
+  analyzer = Meyda.createMeydaAnalyzer({
+    audioContext: audioContext,
+    source: gainNode,
+    bufferSize: 16384,
+    featureExtractors: ["fundamentalFrequency", "rms"],
+    callback: features => {
+      const rms = features.rms;
+      const freq = features.fundamentalFrequency;
+      document.getElementById("nivelSinal").style.width = `${Math.min(rms*500,100)}%`;
 
-  const gainNode = audioContext.createGain();
-  gainNode.gain.value = 5; // Aumentar sinal
-  source.connect(gainNode);
-  gainNode.connect(analyserNode);
+      if(freq) {
+        document.getElementById("notaCantada").innerText = `Nota cantada v1: ${freqParaNota(freq)}`;
+      } else {
+        document.getElementById("notaCantada").innerText = `Nota cantada v1: --`;
+      }
+    }
+  });
 
-  input = new Float32Array(analyserNode.fftSize);
-
-  function atualizarNota() {
-    if(!detectando) return;
-
-    analyserNode.getFloatTimeDomainData(input);
-
-    // Medidor RMS
-    let soma = 0;
-    for(let i=0;i<input.length;i++) soma += input[i]*input[i];
-    const rms = Math.sqrt(soma/input.length);
-    document.getElementById("nivelSinal").style.width = `${Math.min(rms*3000,100)}%`;
-
-    if(rms>0.002) { // Threshold menor para graves
-      const pitch = detectarPitch(input, audioContext.sampleRate);
-      if(pitch>0) {
-        const nota = freqParaNota(pitch);
-        document.getElementById("notaCantada").innerText = `Nota cantada: ${nota}`;
-      } else document.getElementById("notaCantada").innerText = `Nota cantada: --`;
-    } else document.getElementById("notaCantada").innerText = `Nota cantada: --`;
-
-    requestAnimationFrame(atualizarNota);
-  }
-
-  atualizarNota();
+  analyzer.start();
 }
 
-// ==========================
-// Parar detecção
-// ==========================
 function pararDeteccao() {
   detectando = false;
-  if(stream) stream.getTracks().forEach(track=>track.stop());
-  document.getElementById("nivelSinal").style.width = `0%`;
-  document.getElementById("notaCantada").innerText = `Nota cantada: --`;
-}
-
-// ==========================
-// Autocorrelation pitch detection
-// ==========================
-function detectarPitch(buffer, sampleRate) {
-  let size = buffer.length;
-  let maxCorr = 0;
-  let bestOffset = -1;
-
-  for(let offset=64; offset<size/2; offset++) {
-    let corr=0;
-    for(let i=0;i<size-offset;i++) corr += buffer[i]*buffer[i+offset];
-    if(corr>maxCorr){
-      maxCorr=corr;
-      bestOffset=offset;
-    }
-  }
-
-  if(bestOffset<=0) return -1;
-  return sampleRate/bestOffset;
+  if(stream) stream.getTracks().forEach(track => track.stop());
+  if(analyzer) analyzer.stop();
+  document.getElementById("nivelSinal").style.width = "0%";
+  document.getElementById("notaCantada").innerText = "Nota cantada v1: --";
 }
 
 // ==========================
 // Frequência para nota
 // ==========================
-function freqParaNota(freq){
-  if(!freq||freq<=0) return '--';
-  const notas=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-  const A4=440;
-  const semitons=Math.round(12*Math.log2(freq/A4));
-  const notaIndex=(semitons+9)%12;
-  const oitava=4+Math.floor((semitons+9)/12);
+function freqParaNota(freq) {
+  if(!freq || freq <= 0) return '--';
+  const notas = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const A4 = 440;
+  const semitons = Math.round(12*Math.log2(freq/A4));
+  const notaIndex = (semitons+9)%12;
+  const oitava = 4 + Math.floor((semitons+9)/12);
   return notas[notaIndex]+oitava;
 }
 
@@ -174,29 +133,3 @@ function freqParaNota(freq){
 listarMicrofones();
 document.getElementById("btnComecar").addEventListener("click", iniciarDeteccao);
 document.getElementById("btnParar").addEventListener("click", pararDeteccao);
-
-// ==========================
-// Músicas exemplo
-// ==========================
-let musicas = {
-  "Música 1": "C4 – 'Exemplo de letra 1...'\nD4 – 'Segunda linha...'",
-  "Música 2": "E4 – 'Exemplo de letra 2...'\nF4 – 'Segunda linha...'"
-};
-
-function mostrarMenuMusicas() {
-  const menu = document.getElementById("menu-musicas");
-  menu.innerHTML = "";
-  Object.keys(musicas).forEach(nome => {
-    const btn = document.createElement("button");
-    btn.textContent = nome;
-    btn.onclick = ()=>mostrarMusica(nome);
-    menu.appendChild(btn);
-  });
-}
-
-function mostrarMusica(nome){
-  const div = document.getElementById("conteudo-musica");
-  div.innerHTML=`<h3>${nome}</h3><pre>${musicas[nome]}</pre>`;
-}
-
-mostrarMenuMusicas();
