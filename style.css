@@ -6,9 +6,34 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* =========================
+   Variáveis de tema
+   ========================= */
+:root {
+  --bg-primary: #2c2c3c;
+  --bg-secondary: #1e1e2f;
+  --text-color: #eee;
+  --highlight-color: #ffcc00;
+  --accent-color: #ffaa00;
+  --piano-white: #fff;
+  --piano-black: #000;
+
+  --fade-duration: 1s; /* controle central do tempo de fade */
+}
+
+body.light-theme {
+  --bg-primary: #f0f0f0;
+  --bg-secondary: #ffffff;
+  --text-color: #222;
+  --highlight-color: #ff9900;
+  --accent-color: #ffcc33;
+  --piano-white: #fff;
+  --piano-black: #333;
+}
+
 body {
-  background: linear-gradient(to bottom, #1e1e2f, #2c2c3c);
-  color: #eee;
+  background: linear-gradient(to bottom, var(--bg-secondary), var(--bg-primary));
+  color: var(--text-color);
   min-height: 100vh;
   display: flex;
   justify-content: center;
@@ -21,16 +46,20 @@ body {
   width: 100%;
 }
 
-/* Títulos */
+/* =========================
+   Títulos
+   ========================= */
 h1, h2 {
   text-align: center;
   margin-bottom: 15px;
-  color: #ffcc00;
+  color: var(--highlight-color);
 }
 
-/* Microfone */
+/* =========================
+   Microfone
+   ========================= */
 .microfone {
-  background: #2c2c3c;
+  background: var(--bg-primary);
   padding: 20px;
   border-radius: 15px;
   margin-bottom: 30px;
@@ -48,17 +77,20 @@ h1, h2 {
   padding: 8px 15px;
   border: none;
   border-radius: 8px;
-  background: #ffcc00;
-  color: #222;
+  background: var(--highlight-color);
+  color: var(--text-color);
   cursor: pointer;
   font-weight: bold;
   transition: 0.2s;
 }
 
 .microfone button:hover {
-  background: #ffaa00;
+  background: var(--accent-color);
 }
 
+/* =========================
+   Indicador de sinal
+   ========================= */
 #nivelSinalContainer {
   margin-top: 10px;
 }
@@ -68,11 +100,184 @@ h1, h2 {
   background: lime;
   width: 0%;
   border-radius: 5px;
-  transition: width 0.2s;
+  transition: width 0.15s ease-in-out, background-color 0.2s ease;
   margin-top: 5px;
 }
 
+/* =========================
+   Nota cantada
+   ========================= */
+#notaCantada {
+  font-size: 2em;
+  text-align: center;
+  margin-top: 15px;
+  font-weight: bold;
+  color: var(--highlight-color);
+  transition: none; /* mostra imediatamente */
+}
+
+/* =========================
+   Controle de ganho
+   ========================= */
 #gainKnob {
   width: 100%;
   margin-top: 5px;
+}
+
+/* =========================
+   Notas por oitava
+   ========================= */
+.notas-oitavas {
+  margin-top: 20px;
+}
+
+#oitavasContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
+}
+
+.oitava-card {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  padding: 15px;
+  min-width: 180px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+}
+
+.oitava-card h3 {
+  text-align: center;
+  color: var(--highlight-color);
+  margin-bottom: 10px;
+}
+
+.nota-card {
+  display: inline-block;
+  padding: 6px 10px;
+  margin: 3px;
+  border-radius: 6px;
+  min-width: 50px;
+  text-align: center;
+  font-weight: bold;
+  color: var(--text-color);
+  cursor: default;
+  user-select: none;
+}
+
+.nota-natural {
+  background-color: var(--highlight-color);
+}
+
+.nota-sustenida {
+  background-color: var(--accent-color);
+}
+
+/* =========================
+   Piano
+   ========================= */
+.piano-section {
+  margin-top: 30px;
+  text-align: center;
+}
+
+#pianoContainer {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: 10px;
+  overflow-x: auto;
+}
+
+.tecla {
+  border: 1px solid var(--text-color);
+  height: 120px;
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  font-weight: bold;
+  color: var(--text-color);
+  font-size: 0.8em;
+  transition: transform 0.15s ease-in-out, background-color 0.2s ease;
+}
+
+.tecla-natural {
+  width: 40px;
+  background: var(--piano-white);
+  border-radius: 4px;
+}
+
+.tecla-sustenida {
+  width: 30px;
+  height: 80px;
+  background: var(--piano-black);
+  color: var(--piano-white);
+  margin-left: -15px;
+  margin-right: -15px;
+  z-index: 1;
+  position: relative;
+  border-radius: 4px;
+}
+
+/* Mostra imediatamente o destaque da tecla */
+.tecla-ativa {
+  background-color: var(--highlight-color);
+  animation: none; /* remove animação se quiser só mostrar imediatamente */
+}
+
+/* =========================
+   Botões Aula
+   ========================= */
+.btn-aula {
+  padding: 10px 20px;
+  font-size: 1.1em;
+  background: var(--highlight-color);
+  border: none;
+  border-radius: 8px;
+  color: var(--text-color);
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.btn-aula:hover {
+  background: var(--accent-color);
+}
+
+/* =========================
+   Aula em blocos
+   ========================= */
+.aula-card {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+  color: var(--text-color);
+}
+
+.aula-card h3 {
+  color: var(--highlight-color);
+  margin-bottom: 10px;
+}
+
+.aula-card p {
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+/* =========================
+   Transições Fade (somente para interfaces)
+   ========================= */
+.interface-fade {
+  opacity: 1;
+  transition: opacity var(--fade-duration) ease;
+}
+
+.interface-fade.hidden {
+  opacity: 0;
+  pointer-events: none; /* impede interação durante o fade-out */
 }
