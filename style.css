@@ -287,8 +287,14 @@ h1, h2 {
   animation: tecla-pulse 0.3s ease-in-out;
 }
 
-.tecla-ativa.tecla-natural { background-color: yellow; }
-.tecla-ativa.tecla-sustenida { background-color: orange; }
+.tecla-ativa.tecla-natural { 
+  background-color: yellow !important; /* adiciona !important */
+}
+
+.tecla-ativa.tecla-sustenida { 
+  background-color: orange !important; /* adiciona !important */
+}
+
 
 @keyframes tecla-pulse {
   0% { transform: scale(1); }
