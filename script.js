@@ -1,10 +1,14 @@
+import { PitchDetector } from "https://esm.sh/pitchy@4";
+
 window.addEventListener("DOMContentLoaded", () => {
+  console.log("🎬 DOM carregado");
+
   // ==========================
   // Frequência para nota
   // ==========================
   function freqParaNota(freq) {
     if (!freq || freq <= 0) return '--';
-    const notas = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+    const notas = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
     const A4 = 440;
     const semitons = Math.round(12 * Math.log2(freq / A4));
     const notaIndex = (semitons + 9) % 12;
@@ -21,7 +25,9 @@ window.addEventListener("DOMContentLoaded", () => {
     synth = new Tone.Synth().toDestination();
     synth.triggerAttack(nota);
     document.getElementById("notaTocada").innerText = `Nota tocada: ${nota}`;
+    console.log(`🎹 Nota tocada: ${nota}`);
   }
+
   function pararNota() {
     if (synth) synth.triggerRelease();
   }
@@ -30,7 +36,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // Gerar piano horizontal C2-B6
   // ==========================
   function gerarPiano() {
-    const notas = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+    const notas = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
     const piano = document.getElementById("piano");
 
     for (let oitava = 2; oitava <= 6; oitava++) {
@@ -58,52 +64,25 @@ window.addEventListener("DOMContentLoaded", () => {
       const leftWhite = whiteKeys[idx];
       if (leftWhite) black.style.left = `${leftWhite.offsetLeft + 30}px`;
     });
+
+    console.log("🎹 Piano gerado");
   }
+
   gerarPiano();
 
   // ==========================
-  // Autocorrelação para pitch detection
+  // Microfone e Pitchy
   // ==========================
-  function autoCorrelate(buf, sampleRate) {
-    let SIZE = buf.length;
-    let rms = 0;
-    for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
-    rms = Math.sqrt(rms / SIZE);
-    if (rms < 0.01) return -1;
-
-    let r1 = 0, r2 = SIZE - 1;
-    for (let i = 0; i < SIZE / 2; i++) if (Math.abs(buf[i]) < 0.02) { r1 = i; break; }
-    for (let i = 1; i < SIZE / 2; i++) if (Math.abs(buf[SIZE - i]) < 0.02) { r2 = SIZE - i; break; }
-
-    buf = buf.slice(r1, r2);
-    SIZE = buf.length;
-
-    let c = new Array(SIZE).fill(0);
-    for (let i = 0; i < SIZE; i++)
-      for (let j = 0; j < SIZE - i; j++)
-        c[i] += buf[j] * buf[j + i];
-
-    let d = 0; while (c[d] > c[d + 1]) d++;
-    let maxval = -1, maxpos = -1;
-    for (let i = d; i < SIZE; i++) {
-      if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
-    }
-
-    return maxpos === 0 ? -1 : sampleRate / maxpos;
-  }
-
-  // ==========================
-  // Microfone e pitch detection
-  // ==========================
-  let audioContext, analyser, dataArray, sourceNode, detectando = false, gainNode;
+  let audioContext, analyser, dataArray, sourceNode, gainNode, detector, detectando = false;
 
   document.getElementById("btnComecar").addEventListener("click", async () => {
     if (detectando) return;
     detectando = true;
+    console.log("🎤 Iniciando detecção...");
 
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
-    analyser.fftSize = 32768;
+    analyser.fftSize = 2048;
 
     gainNode = audioContext.createGain();
     gainNode.gain.value = parseFloat(document.getElementById("gainKnob").value);
@@ -114,45 +93,54 @@ window.addEventListener("DOMContentLoaded", () => {
       sourceNode.connect(gainNode).connect(analyser);
 
       dataArray = new Float32Array(analyser.fftSize);
-      detectarFrequencia();
+      detector = PitchDetector.forFloat32Array(analyser.fftSize);
+
+      detectarPitch();
     } catch (err) {
       alert("Não foi possível acessar o microfone.");
+      console.error("🚫 Erro ao acessar microfone:", err);
     }
   });
 
   document.getElementById("btnParar").addEventListener("click", () => {
     detectando = false;
     if (sourceNode) sourceNode.disconnect();
+    if (audioContext) audioContext.close();
     document.getElementById("notaCantada").innerText = 'Nota cantada: --';
     document.getElementById("nivelSinal").style.width = '0%';
+    console.log("🛑 Detecção encerrada");
   });
 
   document.getElementById("gainKnob").addEventListener("input", (e) => {
     if (gainNode) gainNode.gain.value = parseFloat(e.target.value);
+    console.log(`🎚️ Ganho ajustado: ${e.target.value}`);
   });
 
-  function detectarFrequencia() {
+  function detectarPitch() {
     if (!detectando) return;
 
     analyser.getFloatTimeDomainData(dataArray);
-    const freq = autoCorrelate(dataArray, audioContext.sampleRate);
+    const [pitch, clarity] = detector.findPitch(dataArray, audioContext.sampleRate);
 
-    if (freq > 65 && freq < 2000) {
-      const nota = freqParaNota(freq);
-      document.getElementById("notaCantada").innerText = 'Nota cantada: ' + nota;
-      document.getElementById("nivelSinal").style.width = '100%';
+    const nivelSinal = document.getElementById("nivelSinal");
+    const rms = Math.sqrt(dataArray.reduce((sum, val) => sum + val * val, 0) / dataArray.length);
+    nivelSinal.style.width = `${Math.min(rms * 300, 100)}%`;
+
+    if (clarity > 0.9 && pitch > 65 && pitch < 2000) {
+      const nota = freqParaNota(pitch);
+      document.getElementById("notaCantada").innerText = `Nota cantada: ${nota} (${pitch.toFixed(1)} Hz)`;
+      console.log(`🎶 Pitch detectado: ${pitch.toFixed(1)} Hz | Nota: ${nota} | Clareza: ${clarity.toFixed(2)}`);
     } else {
       document.getElementById("notaCantada").innerText = 'Nota cantada: --';
-      document.getElementById("nivelSinal").style.width = '0%';
     }
 
-    requestAnimationFrame(detectarFrequencia);
+    requestAnimationFrame(detectarPitch);
   }
 
   // ==========================
   // Músicas exemplo
   // ==========================
- const musicas = {
+  const musicas = {
     "Música 1": "C4 – 'Exemplo letra 1...'\nD4 – 'Segunda linha...'",
     "Música 2": "E4 – 'Exemplo letra 2...'\nF4 – 'Segunda linha...'",
     "Música 3": "G4 – 'Mais uma linha...'\nA4 – 'Finalizando exemplo...'"
@@ -167,14 +155,14 @@ window.addEventListener("DOMContentLoaded", () => {
       btn.onclick = () => mostrarMusica(nome);
       menu.appendChild(btn);
     });
+    console.log("🎵 Menu de músicas carregado");
   }
 
   function mostrarMusica(nome) {
     const div = document.getElementById("conteudo-musica");
     div.innerHTML = `<h3>${nome}</h3><pre>${musicas[nome]}</pre>`;
+    console.log(`🎼 Música exibida: ${nome}`);
   }
 
   mostrarMenuMusicas();
 });
-
-
