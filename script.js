@@ -200,4 +200,8 @@ function mostrarMenuMusicas() {
 }
 
 function mostrarMusica(nome) {
-  const div = document.getElementBy
+  const div = document.getElementById("conteudo-musica");
+  div.innerHTML = `<h3>${nome}</h3><pre>${musicas[nome]}</pre>`;
+}
+
+mostrarMenuMusicas();
