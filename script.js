@@ -1,207 +1,127 @@
-// ==========================
-// Piano e notas tocadas
-// ==========================
+// =========================================
+// Piano horizontal C2 a B6
+// =========================================
 let synth;
 
 function iniciarNota(nota) {
   synth = new Tone.Synth().toDestination();
   synth.triggerAttack(nota);
-  document.getElementById("notaTocada").innerText = `Nota tocada: ${nota}`;
+  document.getElementById("nota-tocada").innerText = nota;
 }
 
 function pararNota() {
-  if (synth) {
-    synth.triggerRelease();
-  }
+  if (synth) synth.triggerRelease();
 }
 
-// ==========================
-// Gerar piano horizontal C2-B6
-// ==========================
 function gerarPiano() {
-  const notas = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  const notas = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
   const piano = document.getElementById("piano");
 
-  for (let oitava = 2; oitava <= 6; oitava++) {
-    notas.forEach((n, i) => {
-      const nota = n + oitava;
+  for(let oitava=2; oitava<=6; oitava++){
+    notas.forEach(n=>{
+      const notaCompleta = n + oitava;
       const key = document.createElement("div");
       key.classList.add("key");
-      if (n.includes("#")) key.classList.add("black");
-      else key.classList.add("white");
-      key.dataset.nota = nota;
-      key.textContent = n;
+      key.classList.add(n.includes("#") ? "black" : "white");
+      key.dataset.nota = notaCompleta;
+      key.textContent = notaCompleta;
 
-      key.addEventListener("mousedown", () => iniciarNota(nota));
+      key.addEventListener("mousedown", ()=> iniciarNota(notaCompleta));
       key.addEventListener("mouseup", pararNota);
       key.addEventListener("mouseleave", pararNota);
-      key.addEventListener("touchstart", () => iniciarNota(nota));
+      key.addEventListener("touchstart", ()=> iniciarNota(notaCompleta));
       key.addEventListener("touchend", pararNota);
 
       piano.appendChild(key);
     });
   }
-
-  // Posicionar as pretas corretamente
-  const whiteKeys = Array.from(document.querySelectorAll('.white'));
-  const blackKeys = Array.from(document.querySelectorAll('.black'));
-  blackKeys.forEach((black, idx) => {
-    const leftWhite = whiteKeys[idx];
-    if (leftWhite) black.style.left = `${leftWhite.offsetLeft + 30}px`;
-  });
 }
 
 gerarPiano();
 
-// ==========================
-// Microfone e pitch detection
-// ==========================
-let audioContext;
-let analyserNode;
-let input;
-let stream;
-let detectando = false;
-
-async function listarMicrofones() {
-  const devices = await navigator.mediaDevices.enumerateDevices();
-  const select = document.getElementById("selectMicrofone");
-  select.innerHTML = "";
-  devices.forEach(d => {
-    if (d.kind === "audioinput") {
-      const option = document.createElement("option");
-      option.value = d.deviceId;
-      option.textContent = d.label || `Microfone ${select.length + 1}`;
-      select.appendChild(option);
-    }
-  });
-}
-
-async function iniciarDeteccao() {
-  if (detectando) return;
-  detectando = true;
-
-  await Tone.start();
-  if (!audioContext) audioContext = new AudioContext();
-
-  const select = document.getElementById("selectMicrofone");
-  const deviceId = select.value;
-
-  if (stream) stream.getTracks().forEach(track => track.stop());
-
-  stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId } });
-  const source = audioContext.createMediaStreamSource(stream);
-  analyserNode = audioContext.createAnalyser();
-  analyserNode.fftSize = 2048;
-
-  const gainNode = audioContext.createGain();
-  gainNode.gain.value = 3;
-  source.connect(gainNode);
-  gainNode.connect(analyserNode);
-
-  input = new Float32Array(analyserNode.fftSize);
-
-  function atualizarNota() {
-    if (!detectando) return;
-
-    analyserNode.getFloatTimeDomainData(input);
-
-    // Medidor RMS
-    let soma = 0;
-    for (let i = 0; i < input.length; i++) soma += input[i] * input[i];
-    const rms = Math.sqrt(soma / input.length);
-    document.getElementById("nivelSinal").style.width = `${Math.min(rms * 500, 100)}%`;
-
-    // Detectar pitch se RMS > threshold
-    if (rms > 0.01) {
-      const pitch = detectarPitch(input, audioContext.sampleRate);
-      if (pitch > 0) {
-        const nota = freqParaNota(pitch);
-        document.getElementById("notaCantada").innerText = `Nota cantada: ${nota}`;
-      } else {
-        document.getElementById("notaCantada").innerText = `Nota cantada: --`;
-      }
-    } else {
-      document.getElementById("notaCantada").innerText = `Nota cantada: --`;
-    }
-
-    requestAnimationFrame(atualizarNota);
-  }
-
-  atualizarNota();
-}
-
-function pararDeteccao() {
-  detectando = false;
-  if (stream) stream.getTracks().forEach(track => track.stop());
-  document.getElementById("nivelSinal").style.width = `0%`;
-  document.getElementById("notaCantada").innerText = `Nota cantada: --`;
-}
-
-// ==========================
-// Autocorrelation pitch detection
-// ==========================
-function detectarPitch(buffer, sampleRate) {
-  let size = buffer.length;
-  let maxCorr = 0;
-  let bestOffset = -1;
-
-  for (let offset = 32; offset < size / 2; offset++) {
-    let corr = 0;
-    for (let i = 0; i < size - offset; i++) {
-      corr += buffer[i] * buffer[i + offset];
-    }
-    if (corr > maxCorr) {
-      maxCorr = corr;
-      bestOffset = offset;
-    }
-  }
-
-  if (bestOffset <= 0) return -1;
-  return sampleRate / bestOffset;
-}
-
-// ==========================
-// Frequência para nota
-// ==========================
-function freqParaNota(freq) {
-  if (!freq || freq <= 0) return '--';
-  const notas = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  const A4 = 440;
-  const semitons = Math.round(12 * Math.log2(freq / A4));
-  const notaIndex = (semitons + 9) % 12;
-  const oitava = 4 + Math.floor((semitons + 9) / 12);
-  return notas[notaIndex] + oitava;
-}
-
-// ==========================
-// Inicialização
-// ==========================
-listarMicrofones();
-document.getElementById("btnComecar").addEventListener("click", iniciarDeteccao);
-document.getElementById("btnParar").addEventListener("click", pararDeteccao);
-
-// ==========================
-// Músicas exemplo
-// ==========================
+// =========================================
+// Músicas (texto com notas dentro)
 let musicas = {
-  "Música 1": "C4 – 'Exemplo de letra 1...'\nD4 – 'Segunda linha...'",
-  "Música 2": "E4 – 'Exemplo de letra 2...'\nF4 – 'Segunda linha...'"
+  "Música 1": "C4 – 'A luz que vem do céu...'\nE4 – '...brilha em mim sem véu...'",
+  "Música 2": "G4 – 'No palco da emoção...'\nB4 – '...canto com o coração...'"
 };
 
-function mostrarMenuMusicas() {
+function mostrarMenuMusicas(){
   const menu = document.getElementById("menu-musicas");
   menu.innerHTML = "";
-  Object.keys(musicas).forEach(nome => {
+  Object.keys(musicas).forEach(nome=>{
     const btn = document.createElement("button");
     btn.textContent = nome;
-    btn.onclick = () => mostrarMusica(nome);
+    btn.onclick = ()=> mostrarMusica(nome);
     menu.appendChild(btn);
   });
 }
 
-function mostrarMusica(nome) {
+function mostrarMusica(nome){
   const div = document.getElementById("conteudo-musica");
   div.innerHTML = `<h3>${nome}</h3><pre>${musicas[nome]}</pre>`;
 }
 
 mostrarMenuMusicas();
+
+// =========================================
+// Detecção de nota cantada com ml5.js + CREPE
+// =========================================
+let pitch, audioContext, micStream, detectInterval;
+
+async function iniciarDeteccao(){
+  // Criar contexto de áudio após interação do usuário
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  micStream = audioContext.createMediaStreamSource(stream);
+
+  pitch = ml5.pitchDetection(
+    'https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/models/pitch-detection/crepe/',
+    audioContext,
+    micStream.stream,
+    modelCarregado
+  );
+}
+
+function modelCarregado(){
+  console.log("Modelo CREPE carregado!");
+  detectarNota();
+}
+
+function detectarNota(){
+  if(!pitch) return;
+
+  detectInterval = setInterval(()=>{
+    pitch.getPitch(function(err, frequency){
+      const notaElem = document.getElementById("nota-cantada");
+      const medidor = document.getElementById("medidor");
+      if(frequency){
+        const nota = freqParaNota(frequency);
+        notaElem.innerText = nota;
+        medidor.value = Math.min(frequency/1000, 1);
+      } else {
+        notaElem.innerText = "--";
+        medidor.value = 0;
+      }
+    });
+  }, 100); // atualiza 10x por segundo
+}
+
+function pararDeteccao(){
+  clearInterval(detectInterval);
+  document.getElementById("nota-cantada").innerText = "--";
+  document.getElementById("medidor").value = 0;
+}
+
+function freqParaNota(freq){
+  const notas = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const A4 = 440;
+  const semitons = Math.round(12 * Math.log2(freq / A4));
+  const notaIndex = (semitons + 9) % 12;
+  const oitava = 4 + Math.floor((semitons + 9)/12);
+  return notas[notaIndex] + oitava;
+}
+
+// Botões
+document.getElementById("start-detect").addEventListener("click", iniciarDeteccao);
+document.getElementById("stop-detect").addEventListener("click", pararDeteccao);
