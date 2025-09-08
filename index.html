@@ -5,24 +5,22 @@
   <title>Piano Interativo</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ml5@0.12.2/dist/ml5.min.js"></script>
 </head>
 <body>
 
   <h2>🎼 Piano C2 até B6</h2>
   <p>Clique ou toque nas teclas para ouvir as notas.</p>
 
-  <h3>Microfone</h3>
-  <select id="selectMicrofone"></select>
-
-  <h3>Detectar nota cantada</h3>
-  <button id="btnComecar">🎤 Começar</button>
-  <button id="btnParar">⏹ Parar</button>
-  <p id="notaCantada">Nota cantada: --</p>
-  <p id="notaTocada">Nota tocada: --</p>
-  <div id="nivelSinal"></div>
+  <h3>🎤 Detecção de nota cantada</h3>
+  <button id="start-detect">Começar detecção</button>
+  <button id="stop-detect">Parar detecção</button>
+  <p>Nota cantada: <span id="nota-cantada">--</span></p>
+  <p>Medidor de sinal: <progress id="medidor" value="0" max="1"></progress></p>
 
   <h3>🎹 Piano Interativo</h3>
   <div id="piano"></div>
+  <p>Nota tocada: <span id="nota-tocada">--</span></p>
 
   <h2>🎵 Músicas</h2>
   <div id="menu-musicas"></div>
