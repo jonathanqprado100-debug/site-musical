@@ -1,7 +1,52 @@
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 30px;
+  background-color: #f9f9f9;
+}
+
+h2, h3 {
+  margin-top: 40px;
+}
+
+button {
+  padding: 10px 20px;
+  margin: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  background-color: #4caf50;
+  color: white;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+#notaCantada, #notaTocada {
+  font-size: 20px;
+  margin-top: 10px;
+}
+
+#nivelSinalContainer {
+  width: 100%;
+  height: 20px;
+  background: #ddd;
+  margin-top: 10px;
+}
+
+#nivelSinal {
+  width: 0%;
+  height: 100%;
+  background: #4caf50;
+}
+
 #piano {
   display: flex;
   flex-wrap: nowrap;
   margin: 20px 0;
+  justify-content: center;
 }
 
 .key {
@@ -30,17 +75,4 @@
   position: absolute;
   z-index: 2;
   margin-left: -15px;
-}
-
-#nivelSinalContainer {
-  width: 100%;
-  height: 20px;
-  background: #ddd;
-  margin-top: 10px;
-}
-
-#nivelSinal {
-  width: 0%;
-  height: 100%;
-  background: #4caf50;
 }
