@@ -1,216 +1,126 @@
-import { PitchDetector } from "https://esm.sh/pitchy@4";
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Detecção de Voz com Piano</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.min.js"></script>
+  <script src="script.js" type="module" defer></script>
+</head>
+<body>
+  <div class="container">
 
-// ==========================
-// Elementos DOM
-// ==========================
-const btnComecar = document.getElementById("btnComecar");
-const btnParar = document.getElementById("btnParar");
-const notaCantada = document.getElementById("notaCantada");
-const gainKnob = document.getElementById("gainKnob");
-const nivelSinal = document.getElementById("nivelSinal");
-const oitavasContainer = document.getElementById("oitavasContainer");
+    <h1>🎤 Detecção de Voz com Piano</h1>
 
-// Navegação da aula
-const btnIrAula = document.getElementById("btnIrAula");
-const btnVoltar = document.getElementById("btnVoltar");
-const interfacePrincipal = document.getElementById("interfacePrincipal");
-const aulaMusica = document.getElementById("aulaMusica");
+    <!-- Botão único de tema -->
+    <div style="text-align:center; margin-bottom:15px;">
+      <button class="btn-aula btn-tema">🌗 Alternar Tema</button>
+    </div>
 
-// Botões de alternância de tema
-const btnTema = document.querySelectorAll(".btn-tema");
+    <!-- Botão para ir para aula -->
+    <div style="text-align:center; margin-bottom:15px;">
+      <button id="btnIrAula" class="btn-aula">🎓 Ir para a Aula</button>
+    </div>
 
-// ==========================
-// Variáveis de fade
-// ==========================
-const tempoFade = 500;
+    <!-- Seção Principal -->
+    <div id="interfacePrincipal">
 
-interfacePrincipal.classList.add("fade");
-aulaMusica.classList.add("fade", "hidden");
-aulaMusica.style.display = "block";
+      <!-- Microfone -->
+      <section class="microfone">
+        <h2>Detectar nota cantada</h2>
+        <div class="controls">
+          <button id="btnComecar" class="btn-aula">Começar detecção</button>
+          <button id="btnParar" class="btn-aula">Parar detecção</button>
+        </div>
+        <p id="notaCantada">Nota cantada: --</p>
+        <label for="gainKnob">Ajuste de ganho do microfone</label>
+        <div id="nivelSinalContainer">
+          <input id="gainKnob" type="range" min="0" max="2" step="0.01" value="1">
+          <div id="nivelSinal"></div>
+        </div>
+      </section>
 
-// ==========================
-// Navegação com fade
-// ==========================
-btnIrAula.addEventListener("click", () => {
-  interfacePrincipal.classList.add("hidden");
-  setTimeout(() => {
-    interfacePrincipal.style.display = "none";
-    aulaMusica.style.display = "block";
-    void aulaMusica.offsetWidth;
-    aulaMusica.classList.remove("hidden");
-  }, tempoFade);
-});
+      <!-- Piano funcional -->
+      <section class="piano-section">
+        <h2>Piano (C2 - C6)</h2>
+        <div id="pianoContainer"></div>
+      </section>
 
-btnVoltar.addEventListener("click", () => {
-  aulaMusica.classList.add("hidden");
-  setTimeout(() => {
-    aulaMusica.style.display = "none";
-    interfacePrincipal.style.display = "block";
-    void interfacePrincipal.offsetWidth;
-    interfacePrincipal.classList.remove("hidden");
-  }, tempoFade);
-});
+      <!-- Visualização de notas por oitava -->
+      <section class="notas-oitavas">
+        <h2>Notas por Oitava</h2>
+        <div id="oitavasContainer"></div>
+      </section>
 
-// ==========================
-// Alternar tema claro/escuro
-// ==========================
-btnTema.forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.body.classList.toggle("light-theme");
-  });
-});
+    </div>
 
-// ==========================
-// Variáveis de áudio
-// ==========================
-let audioCtx, analyserNode, mediaStreamSource, gainNode, detector, intervalo;
+    <!-- Seção da Aula -->
+    <div id="aulaMusica" style="display:none; margin-top:20px;">
+      <div style="text-align:center; margin-bottom:15px;">
+        <button id="btnVoltar" class="btn-aula">⬅ Voltar</button>
+      </div>
 
-// ==========================
-// Começar e parar detecção
-// ==========================
-btnComecar.addEventListener("click", async () => {
-  try {
-    audioCtx = new AudioContext();
-    analyserNode = audioCtx.createAnalyser();
-    analyserNode.fftSize = 4096;
+      <h2>🎶 Como a Música Funciona: Um Guia Simples e Direto</h2>
+      <div class="aula-conteudo">
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaStreamSource = audioCtx.createMediaStreamSource(stream);
+        <div class="aula-card">
+          <h3>1. Notas Musicais: Os Blocos da Música</h3>
+          <p>As notas são como letras do alfabeto musical. Existem sete principais:<br>
+          • Dó, Ré, Mi, Fá, Sol, Lá, Si</p>
+          <p>Essas notas se repetem em diferentes alturas (sons mais graves ou mais agudos). No sistema internacional, elas também são chamadas por letras:<br>
+          • C (Dó), D (Ré), E (Mi), F (Fá), G (Sol), A (Lá), B (Si)</p>
+          <p>🔹 Exemplo: A nota Lá (ou A) é usada como referência para afinar instrumentos. Ela tem uma frequência de 440 Hz — é como o “ponto de partida” do som.</p>
+        </div>
 
-    gainNode = audioCtx.createGain();
-    gainNode.gain.value = parseFloat(gainKnob.value);
+        <div class="aula-card">
+          <h3>2. 🎹 Como as Notas se Conectam ao Piano</h3>
+          <p>O piano tem teclas brancas e pretas. Cada tecla representa uma nota. As teclas brancas seguem a sequência Dó-Ré-Mi-Fá-Sol-Lá-Si. As pretas são variações chamadas sustenidos (#) ou bemóis (♭).</p>
+          <p>🔹 Exemplo visual: Se você encontrar duas teclas pretas juntas, a tecla branca à esquerda delas é o Dó. A partir daí, você pode identificar todas as outras notas.</p>
+        </div>
 
-    mediaStreamSource.connect(gainNode).connect(analyserNode);
+        <div class="aula-card">
+          <h3>3. 🧵 Melodia: A Linha que Costura as Notas</h3>
+          <p>A melodia é uma sequência de notas tocadas uma após a outra. É o que você canta ou reconhece numa música.</p>
+          <p>🔹 Exemplo: Na música “Parabéns pra Você”, a melodia começa com:<br>
+          Dó, Dó, Ré, Dó, Fá, Mi</p>
+        </div>
 
-    detector = PitchDetector.forFloat32Array(analyserNode.fftSize);
+        <div class="aula-card">
+          <h3>4. 🌈 Tom: O Clima da Música</h3>
+          <p>O tom define o “ambiente emocional” da música. Ele é baseado na nota principal e na escala usada.</p>
+          <p>• Tom maior: som alegre, aberto<br>
+             • Tom menor: som mais introspectivo ou triste</p>
+          <p>🔹 Exemplo: Uma música em Lá maior soa vibrante. Uma música em Lá menor soa mais melancólica.</p>
+        </div>
 
-    intervalo = setInterval(() => {
-      const input = new Float32Array(analyserNode.fftSize);
-      analyserNode.getFloatTimeDomainData(input);
+        <div class="aula-card">
+          <h3>5. 🪜 Escalas: A Escada das Notas</h3>
+          <p>A escala é uma sequência organizada de notas. A mais comum é a escala maior, que segue este padrão de distância entre notas:<br>
+          Tom – Tom – Semitom – Tom – Tom – Tom – Semitom</p>
+          <p>🔹 Exemplo: A escala de Dó maior tem:<br>
+          Dó, Ré, Mi, Fá, Sol, Lá, Si, Dó</p>
+        </div>
 
-      const [pitch, clarity] = detector.findPitch(input, audioCtx.sampleRate);
+        <div class="aula-card">
+          <h3>6. 🎨 Harmonia: O Fundo da Pintura Musical</h3>
+          <p>A harmonia acontece quando várias notas são tocadas ao mesmo tempo, formando acordes. Ela dá profundidade à melodia.</p>
+          <p>🔹 Exemplo: Se a melodia está cantando a nota Mi, o acompanhamento pode tocar um acorde de Dó maior (Dó, Mi, Sol).</p>
+        </div>
 
-      if (clarity > 0.85 && pitch) {
-        const nota = freqParaNota(pitch);
-        notaCantada.innerText = `Nota cantada: ${nota} (${pitch.toFixed(1)} Hz)`;
-        highlightPiano(nota.split(" \\ ")[0], false);
-      } else {
-        notaCantada.innerText = "Nota cantada: --";
-        clearPianoHighlight();
-      }
+        <div class="aula-card">
+          <h3>7. 🔍 Como Identificar Notas e Acordes</h3>
+          <p>• No piano, cada tecla tem um nome.<br>
+             • As notas se repetem em padrões.<br>
+             • Os acordes são grupos de 3 ou mais notas que “soam bem juntas”.</p>
+          <p>🔹 Exemplo de acorde:<br>
+          Dó maior = Dó + Mi + Sol<br>
+          Lá menor = Lá + Dó + Mi</p>
+        </div>
 
-      const rms = Math.sqrt(input.reduce((sum, val) => sum + val * val, 0) / input.length);
-      nivelSinal.style.width = `${Math.min(rms * 300, 100)}%`;
-    }, 100);
+      </div>
+    </div>
 
-  } catch (err) {
-    console.error("Erro ao iniciar detecção de áudio:", err);
-    alert("Não foi possível acessar o microfone. Verifique as permissões do navegador.");
-  }
-});
-
-btnParar.addEventListener("click", () => {
-  clearInterval(intervalo);
-  notaCantada.innerText = "Nota cantada: --";
-  clearPianoHighlight();
-  if (audioCtx) audioCtx.close();
-});
-
-gainKnob.addEventListener("input", () => {
-  if (gainNode) gainNode.gain.value = parseFloat(gainKnob.value);
-});
-
-// ==========================
-// Função: frequência -> nota
-// ==========================
-function freqParaNota(freq) {
-  const notasEN = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-  const notasPT = ["Dó","Dó#","Ré","Ré#","Mi","Fá","Fá#","Sol","Sol#","Lá","Lá#","Si"];
-  if (!freq || freq <= 0) return '--';
-  const semitons = Math.round(12 * Math.log2(freq / 440));
-  const notaIndex = (semitons + 9 + 120) % 12;
-  const oitava = 4 + Math.floor((semitons + 9) / 12);
-  return `${notasEN[notaIndex]}${oitava} \\ ${notasPT[notaIndex]} ${oitava}`;
-}
-
-// ==========================
-// Gera tabela de notas C1 - C7
-// ==========================
-function gerarTabelaNotas() {
-  const notasEN = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-  const notasPT = ["Dó","Dó#","Ré","Ré#","Mi","Fá","Fá#","Sol","Sol#","Lá","Lá#","Si"];
-
-  for (let oitava = 1; oitava <= 7; oitava++) {
-    const card = document.createElement("div");
-    card.classList.add("oitava-card");
-
-    const titulo = document.createElement("h3");
-    titulo.innerText = `Oitava ${oitava}`;
-    card.appendChild(titulo);
-
-    notasEN.forEach((nota, i) => {
-      const notaCard = document.createElement("div");
-      notaCard.classList.add("nota-card");
-      notaCard.classList.add(nota.includes("#") ? "nota-sustenida" : "nota-natural");
-      notaCard.innerText = `${nota}${oitava} - ${notasPT[i]} ${oitava}`;
-      card.appendChild(notaCard);
-    });
-
-    oitavasContainer.appendChild(card);
-  }
-}
-
-gerarTabelaNotas();
-
-// ==========================
-// Piano funcional C2-C6
-// ==========================
-const pianoContainer = document.getElementById("pianoContainer");
-const notasSynth = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-const synth = new Tone.Synth().toDestination();
-
-for (let oitava = 2; oitava <= 6; oitava++) {
-  notasSynth.forEach(nota => {
-    const notaCompleta = `${nota}${oitava}`;
-    const tecla = document.createElement("div");
-    tecla.classList.add("tecla");
-    if (nota.includes("#")) tecla.classList.add("tecla-sustenida");
-    else tecla.classList.add("tecla-natural");
-
-    tecla.innerText = notaCompleta;
-    tecla.dataset.nota = notaCompleta;
-
-    tecla.addEventListener("mousedown", () => {
-      synth.triggerAttack(notaCompleta);
-      highlightPiano(notaCompleta, false);
-    });
-    tecla.addEventListener("mouseup", () => synth.triggerRelease());
-    tecla.addEventListener("mouseleave", () => synth.triggerRelease());
-
-    pianoContainer.appendChild(tecla);
-  });
-}
-
-// ==========================
-// Funções de destaque piano
-// ==========================
-function highlightPiano(nota, anim = true) {
-  clearPianoHighlight();
-  const tecla = document.querySelector(`.tecla[data-nota="${nota}"]`);
-  if (tecla) {
-    if (!anim) tecla.style.transition = "none";
-    tecla.classList.add("tecla-ativa");
-    if (!anim) {
-      setTimeout(() => {
-        tecla.style.transition = "";
-      }, 50);
-    }
-  }
-}
-
-function clearPianoHighlight() {
-  document.querySelectorAll(".tecla").forEach(t => {
-    t.classList.remove("tecla-ativa");
-    t.style.transition = "";
-  });
-}
+  </div>
+</body>
+</html>
