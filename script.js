@@ -1,5 +1,8 @@
 import { PitchDetector } from "https://esm.sh/pitchy@4";
 
+let audioCtx, analyserNode, mediaStreamSource, gainNode, detector, intervalo;
+const synth = new Tone.Synth().toDestination();
+
 // ==========================
 // Elementos DOM
 // ==========================
@@ -10,27 +13,31 @@ const gainKnob = document.getElementById("gainKnob");
 const nivelSinal = document.getElementById("nivelSinal");
 const oitavasContainer = document.getElementById("oitavasContainer");
 
-// Navegação da aula
 const btnIrAula = document.getElementById("btnIrAula");
 const btnVoltar = document.getElementById("btnVoltar");
 const interfacePrincipal = document.getElementById("interfacePrincipal");
 const aulaMusica = document.getElementById("aulaMusica");
 
-// Botões de alternância de tema
 const btnTema = document.querySelectorAll(".btn-tema");
 
 // ==========================
-// Variáveis de fade
+// Inicializa AudioContext se ainda não iniciado
+// ==========================
+function iniciarAudio() {
+  if (!audioCtx) {
+    audioCtx = new AudioContext();
+    Tone.setContext(audioCtx);
+  }
+}
+
+// ==========================
+// Fade navegação
 // ==========================
 const tempoFade = 500;
-
 interfacePrincipal.classList.add("fade");
 aulaMusica.classList.add("fade", "hidden");
 aulaMusica.style.display = "block";
 
-// ==========================
-// Navegação com fade
-// ==========================
 btnIrAula.addEventListener("click", () => {
   interfacePrincipal.classList.add("hidden");
   setTimeout(() => {
@@ -52,7 +59,7 @@ btnVoltar.addEventListener("click", () => {
 });
 
 // ==========================
-// Alternar tema claro/escuro
+// Alternar tema
 // ==========================
 btnTema.forEach(btn => {
   btn.addEventListener("click", () => {
@@ -61,15 +68,10 @@ btnTema.forEach(btn => {
 });
 
 // ==========================
-// Variáveis de áudio
-// ==========================
-let audioCtx, analyserNode, mediaStreamSource, gainNode, detector, intervalo;
-
-// ==========================
-// Começar e parar detecção
+// Começar detecção
 // ==========================
 btnComecar.addEventListener("click", async () => {
-  if (!audioCtx) audioCtx = new AudioContext();
+  iniciarAudio();
 
   analyserNode = audioCtx.createAnalyser();
   analyserNode.fftSize = 4096;
@@ -109,6 +111,7 @@ btnParar.addEventListener("click", () => {
   notaCantada.innerText = "Nota cantada: --";
   clearPianoHighlight();
   if (audioCtx) audioCtx.close();
+  audioCtx = null; // permite reiniciar
 });
 
 gainKnob.addEventListener("input", () => {
@@ -116,7 +119,7 @@ gainKnob.addEventListener("input", () => {
 });
 
 // ==========================
-// Função: frequência -> nota
+// Frequência -> nota
 // ==========================
 function freqParaNota(freq) {
   const notasEN = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
@@ -129,7 +132,7 @@ function freqParaNota(freq) {
 }
 
 // ==========================
-// Gera tabela de notas C1 - C7
+// Gera notas
 // ==========================
 function gerarTabelaNotas() {
   const notasEN = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
@@ -138,7 +141,6 @@ function gerarTabelaNotas() {
   for (let oitava = 1; oitava <= 7; oitava++) {
     const card = document.createElement("div");
     card.classList.add("oitava-card");
-
     const titulo = document.createElement("h3");
     titulo.innerText = `Oitava ${oitava}`;
     card.appendChild(titulo);
@@ -158,26 +160,22 @@ function gerarTabelaNotas() {
 gerarTabelaNotas();
 
 // ==========================
-// Piano funcional C2-C6
+// Piano funcional com suporte mobile
 // ==========================
 const pianoContainer = document.getElementById("pianoContainer");
 const notasSynth = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-const synth = new Tone.Synth().toDestination();
 
 for (let oitava = 2; oitava <= 6; oitava++) {
   notasSynth.forEach(nota => {
     const notaCompleta = `${nota}${oitava}`;
     const tecla = document.createElement("div");
     tecla.classList.add("tecla");
-    if (nota.includes("#")) tecla.classList.add("tecla-sustenida");
-    else tecla.classList.add("tecla-natural");
-
+    tecla.classList.add(nota.includes("#") ? "tecla-sustenida" : "tecla-natural");
     tecla.innerText = notaCompleta;
     tecla.dataset.nota = notaCompleta;
 
-    // ======= Funções de toque =======
     function tocarNota() {
-      if (!audioCtx) audioCtx = new Tone.Context();
+      iniciarAudio();
       synth.triggerAttack(notaCompleta);
       highlightPiano(notaCompleta, false);
     }
@@ -187,12 +185,12 @@ for (let oitava = 2; oitava <= 6; oitava++) {
       clearPianoHighlight();
     }
 
-    // Eventos Desktop
+    // Eventos desktop
     tecla.addEventListener("mousedown", tocarNota);
     tecla.addEventListener("mouseup", soltarNota);
     tecla.addEventListener("mouseleave", soltarNota);
 
-    // Eventos Mobile
+    // Eventos mobile
     tecla.addEventListener("touchstart", (e) => { e.preventDefault(); tocarNota(); }, { passive: false });
     tecla.addEventListener("touchend", (e) => { e.preventDefault(); soltarNota(); }, { passive: false });
 
@@ -201,7 +199,7 @@ for (let oitava = 2; oitava <= 6; oitava++) {
 }
 
 // ==========================
-// Funções de destaque piano
+// Destaque piano
 // ==========================
 function highlightPiano(nota, anim = true) {
   clearPianoHighlight();
