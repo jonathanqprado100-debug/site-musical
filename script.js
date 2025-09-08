@@ -1,4 +1,17 @@
 // ==========================
+// Frequência para nota
+// ==========================
+function freqParaNota(freq) {
+  if (!freq || freq <= 0) return '--';
+  const notas = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const A4 = 440;
+  const semitons = Math.round(12 * Math.log2(freq / A4));
+  const notaIndex = (semitons + 9) % 12;
+  const oitava = 4 + Math.floor((semitons + 9) / 12);
+  return notas[notaIndex] + oitava;
+}
+
+// ==========================
 // Piano e notas tocadas
 // ==========================
 let synth;
@@ -128,19 +141,6 @@ function detectarFrequencia() {
   }
 
   requestAnimationFrame(detectarFrequencia);
-}
-
-// ==========================
-// Frequência para nota
-// ==========================
-function freqParaNota(freq) {
-  if (!freq || freq <= 0) return '--';
-  const notas = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-  const A4 = 440;
-  const semitons = Math.round(12 * Math.log2(freq / A4));
-  const notaIndex = (semitons + 9) % 12;
-  const oitava = 4 + Math.floor((semitons + 9) / 12);
-  return notas[notaIndex] + oitava;
 }
 
 // ==========================
