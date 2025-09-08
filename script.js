@@ -17,60 +17,6 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // ==========================
-  // Piano e notas tocadas
-  // ==========================
-  let synth;
-  async function iniciarNota(nota) {
-    await Tone.start();
-    synth = new Tone.Synth().toDestination();
-    synth.triggerAttack(nota);
-    document.getElementById("notaTocada").innerText = `Nota tocada: ${nota}`;
-    console.log(`🎹 Nota tocada: ${nota}`);
-  }
-
-  function pararNota() {
-    if (synth) synth.triggerRelease();
-  }
-
-  // ==========================
-  // Gerar piano horizontal C2-B6
-  // ==========================
-  function gerarPiano() {
-    const notas = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    const piano = document.getElementById("piano");
-
-    for (let oitava = 2; oitava <= 6; oitava++) {
-      notas.forEach((n) => {
-        const nota = n + oitava;
-        const key = document.createElement("div");
-        key.classList.add("key");
-        key.classList.add(n.includes("#") ? "black" : "white");
-        key.dataset.nota = nota;
-        key.textContent = n;
-
-        key.addEventListener("mousedown", () => iniciarNota(nota));
-        key.addEventListener("mouseup", pararNota);
-        key.addEventListener("mouseleave", pararNota);
-        key.addEventListener("touchstart", () => iniciarNota(nota));
-        key.addEventListener("touchend", pararNota);
-
-        piano.appendChild(key);
-      });
-    }
-
-    const whiteKeys = Array.from(document.querySelectorAll('.white'));
-    const blackKeys = Array.from(document.querySelectorAll('.black'));
-    blackKeys.forEach((black, idx) => {
-      const leftWhite = whiteKeys[idx];
-      if (leftWhite) black.style.left = `${leftWhite.offsetLeft + 30}px`;
-    });
-
-    console.log("🎹 Piano gerado");
-  }
-
-  gerarPiano();
-
-  // ==========================
   // Microfone e Pitchy
   // ==========================
   let audioContext, analyser, dataArray, sourceNode, gainNode, detector, detectando = false;
@@ -136,34 +82,4 @@ window.addEventListener("DOMContentLoaded", () => {
 
     requestAnimationFrame(detectarPitch);
   }
-
-  // ==========================
-  // Músicas exemplo
-  // ==========================
-  const musicas = {
-    "Música 1": "C4 – 'Exemplo letra 1...'\nD4 – 'Segunda linha...'",
-    "Música 2": "E4 – 'Exemplo letra 2...'\nF4 – 'Segunda linha...'",
-    "Música 3": "G4 – 'Mais uma linha...'\nA4 – 'Finalizando exemplo...'"
-  };
-
-  function mostrarMenuMusicas() {
-    const menu = document.getElementById("menu-musicas");
-    menu.innerHTML = "";
-    Object.keys(musicas).forEach(nome => {
-      const btn = document.createElement("button");
-      btn.textContent = nome;
-      btn.onclick = () => mostrarMusica(nome);
-      menu.appendChild(btn);
-    });
-    console.log("🎵 Menu de músicas carregado");
-  }
-
-  function mostrarMusica(nome) {
-    const div = document.getElementById("conteudo-musica");
-    div.innerHTML = `<h3>${nome}</h3><pre>${musicas[nome]}</pre>`;
-    console.log(`🎼 Música exibida: ${nome}`);
-  }
-
-  mostrarMenuMusicas();
 });
-
