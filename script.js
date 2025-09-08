@@ -3,12 +3,14 @@
 // ==========================
 let synth;
 async function iniciarNota(nota) {
+  console.log(`[DEBUG] Iniciando nota: ${nota}`);
   await Tone.start();
   synth = new Tone.Synth().toDestination();
   synth.triggerAttack(nota);
   document.getElementById("notaTocada").innerText = `Nota tocada: ${nota}`;
 }
 function pararNota() {
+  console.log(`[DEBUG] Parando nota`);
   if (synth) synth.triggerRelease();
 }
 
@@ -44,6 +46,8 @@ function gerarPiano() {
     const leftWhite = whiteKeys[idx];
     if (leftWhite) black.style.left = `${leftWhite.offsetLeft + 30}px`;
   });
+
+  console.log(`[DEBUG] Piano gerado com ${whiteKeys.length + blackKeys.length} teclas`);
 }
 
 gerarPiano();
@@ -56,25 +60,32 @@ let detectando = false;
 let audioStream;
 
 document.getElementById("btnComecar").addEventListener("click", async () => {
-  if (detectando) return;
+  if (detectando) {
+    console.warn("[DEBUG] Já está detectando");
+    return;
+  }
   detectando = true;
+  console.log("[DEBUG] Iniciando detecção de pitch...");
 
   await Tone.start();
 
   navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+    console.log("[DEBUG] Microfone acessado com sucesso");
     audioStream = stream;
- pitch = ml5.pitchDetection(
-  'https://cdn.jsdelivr.net/npm/@ml5js/crepe-model@1.0.0',
-  stream,
-  modelLoaded
-);
+
+    pitch = ml5.pitchDetection(
+      'https://cdn.jsdelivr.net/npm/@ml5js/crepe-model@1.0.0',
+      stream,
+      modelLoaded
+    );
   }).catch(err => {
-    console.error("Erro ao acessar o microfone:", err);
+    console.error("[ERRO] Falha ao acessar microfone:", err);
     alert("Não foi possível acessar o microfone.");
   });
 });
 
 document.getElementById("btnParar").addEventListener("click", () => {
+  console.log("[DEBUG] Parando detecção de pitch");
   detectando = false;
   if (audioStream) {
     audioStream.getTracks().forEach(track => track.stop());
@@ -84,19 +95,32 @@ document.getElementById("btnParar").addEventListener("click", () => {
 });
 
 function modelLoaded() {
+  console.log("[DEBUG] Modelo CREPE carregado com sucesso");
   detectar();
 }
 
 function detectar() {
-  if (!detectando) return;
+  if (!detectando) {
+    console.warn("[DEBUG] detectando = false, encerrando loop");
+    return;
+  }
+
   pitch.getPitch((err, freq) => {
+    if (err) {
+      console.error("[ERRO] pitch.getPitch falhou:", err);
+    }
+
     if (freq) {
-      document.getElementById("notaCantada").innerText = 'Nota cantada: ' + freqParaNota(freq);
+      const nota = freqParaNota(freq);
+      console.log(`[DEBUG] Frequência detectada: ${freq} Hz → Nota: ${nota}`);
+      document.getElementById("notaCantada").innerText = 'Nota cantada: ' + nota;
       document.getElementById("nivelSinal").style.width = '100%';
     } else {
+      console.log("[DEBUG] Nenhuma frequência detectada");
       document.getElementById("notaCantada").innerText = 'Nota cantada: --';
       document.getElementById("nivelSinal").style.width = '0%';
     }
+
     requestAnimationFrame(detectar);
   });
 }
@@ -131,12 +155,13 @@ function mostrarMenuMusicas() {
     btn.onclick = () => mostrarMusica(nome);
     menu.appendChild(btn);
   });
+  console.log("[DEBUG] Menu de músicas carregado");
 }
 
 function mostrarMusica(nome) {
   const div = document.getElementById("conteudo-musica");
   div.innerHTML = `<h3>v1 - ${nome}</h3><pre>${musicas[nome]}</pre>`;
+  console.log(`[DEBUG] Música exibida: ${nome}`);
 }
 
 mostrarMenuMusicas();
-
