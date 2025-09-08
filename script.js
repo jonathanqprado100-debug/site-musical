@@ -66,10 +66,12 @@ let analyserNode;
 let input;
 let stream;
 let source;
+let detectando = false;
 
 async function listarMicrofones() {
   const devices = await navigator.mediaDevices.enumerateDevices();
   const select = document.getElementById("selectMicrofone");
+  if (!select) return;
   select.innerHTML = "";
   devices.forEach(d => {
     if (d.kind === "audioinput") {
@@ -82,24 +84,23 @@ async function listarMicrofones() {
 }
 
 async function iniciarDeteccao() {
-  await Tone.start(); // Libera AudioContext
+  if (detectando) return;
+  detectando = true;
 
+  await Tone.start(); // Libera AudioContext
   if (!audioContext) audioContext = new AudioContext();
 
   const select = document.getElementById("selectMicrofone");
   const deviceId = select.value;
 
-  if (stream) {
-    stream.getTracks().forEach(track => track.stop());
-  }
+  if (stream) stream.getTracks().forEach(track => track.stop());
 
   stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId } });
   source = audioContext.createMediaStreamSource(stream);
   analyserNode = audioContext.createAnalyser();
 
-  // Ganho extra
   const gainNode = audioContext.createGain();
-  gainNode.gain.value = 3;
+  gainNode.gain.value = 3; // aumentar sinal
   source.connect(gainNode);
   gainNode.connect(analyserNode);
 
@@ -107,6 +108,8 @@ async function iniciarDeteccao() {
   input = new Float32Array(analyserNode.fftSize);
 
   function atualizarNota() {
+    if (!detectando) return;
+
     analyserNode.getFloatTimeDomainData(input);
 
     // Medidor RMS
@@ -130,6 +133,13 @@ async function iniciarDeteccao() {
   atualizarNota();
 }
 
+function pararDeteccao() {
+  detectando = false;
+  if (stream) stream.getTracks().forEach(track => track.stop());
+  document.getElementById("nivelSinal").style.width = `0%`;
+  document.getElementById("notaCantada").innerText = `Nota cantada: --`;
+}
+
 // ==========================
 // Converter frequência em nota
 // ==========================
@@ -145,8 +155,9 @@ function freqParaNota(freq) {
 // ==========================
 // Inicialização
 // ==========================
-document.getElementById("btnComecar").addEventListener("click", iniciarDeteccao);
 listarMicrofones();
+document.getElementById("btnComecar").addEventListener("click", iniciarDeteccao);
+document.getElementById("btnParar").addEventListener("click", pararDeteccao);
 
 // ==========================
 // Músicas exemplo
