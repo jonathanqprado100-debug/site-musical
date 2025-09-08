@@ -61,18 +61,18 @@ document.getElementById("btnComecar").addEventListener("click", async () => {
 
   await Tone.start();
 
-  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-    audioStream = stream;
-pitch = ml5.pitchDetection(
-  'https://cdn.jsdelivr.net/npm/@ml5js/crepe-model@1.0.0',
-  stream,
-  modelLoaded
-);
-  }).catch(err => {
-    console.error("Erro ao acessar o microfone:", err);
-    alert("Não foi possível acessar o microfone.");
-  });
+navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+  audioStream = stream;
+  pitch = ml5.pitchDetection(
+    'https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/pitch-detection/crepe/',
+    stream,
+    modelLoaded
+  );
+}).catch(err => {
+  console.error("Erro ao acessar o microfone:", err);
+  alert("Não foi possível acessar o microfone.");
 });
+
 
 document.getElementById("btnParar").addEventListener("click", () => {
   detectando = false;
@@ -139,5 +139,6 @@ function mostrarMusica(nome){
 }
 
 mostrarMenuMusicas();
+
 
 
