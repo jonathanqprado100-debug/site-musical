@@ -58,7 +58,7 @@ function gerarPiano() {
 gerarPiano();
 
 // ==========================
-// Detectar nota cantada com microfone selecionado
+// Detectar nota cantada
 // ==========================
 let audioContext;
 let pitchDetector;
@@ -87,7 +87,7 @@ async function iniciarDeteccao() {
   if (detectando) return;
   detectando = true;
 
-  await Tone.start(); // Libera AudioContext
+  await Tone.start();
   if (!audioContext) audioContext = new AudioContext();
 
   const select = document.getElementById("selectMicrofone");
