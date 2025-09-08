@@ -109,7 +109,7 @@ document.getElementById("btnComecar").addEventListener("click", async () => {
   analyser.fftSize = 32768;
 
   gainNode = audioContext.createGain();
-  gainNode.gain.value = parseFloat(document.getElementById("gainControl").value);
+gainNode.gain.value = parseFloat(document.getElementById("gainKnob").value);
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
@@ -132,8 +132,8 @@ document.getElementById("btnParar").addEventListener("click", () => {
   document.getElementById("nivelSinal").style.width = '0%';
 });
 
-document.getElementById("gainControl").addEventListener("input", (e)=>{
-  if(gainNode) gainNode.gain.value = parseFloat(e.target.value);
+document.getElementById("gainKnob").addEventListener("input", (e) => {
+  if (gainNode) gainNode.gain.value = parseFloat(e.target.value);
 });
 
 function detectarFrequencia() {
@@ -177,3 +177,4 @@ function mostrarMusica(nome){
   div.innerHTML = `<h3>v3 - ${nome}</h3><pre>${musicas[nome]}</pre>`;
 }
 mostrarMenuMusicas();
+
