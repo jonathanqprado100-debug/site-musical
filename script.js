@@ -63,11 +63,11 @@ document.getElementById("btnComecar").addEventListener("click", async () => {
 
   navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
     audioStream = stream;
-    pitch = ml5.pitchDetection(
-      'https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/pitch-detection/crepe/',
-      stream,
-      modelLoaded
-    );
+  pitch = ml5.pitchDetection(
+  'https://cdn.jsdelivr.net/npm/@ml5js/crepe-model@1.0.0/',
+  stream,
+  modelLoaded
+);
   }).catch(err => {
     console.error("Erro ao acessar o microfone:", err);
     alert("Não foi possível acessar o microfone.");
@@ -139,3 +139,4 @@ function mostrarMusica(nome){
 }
 
 mostrarMenuMusicas();
+
