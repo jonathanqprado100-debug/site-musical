@@ -58,19 +58,43 @@ function gerarPiano() {
 gerarPiano();
 
 // ==========================
-// Detectar nota cantada
+// Detectar nota cantada com microfone selecionado
 // ==========================
 let audioContext;
 let pitchDetector;
 let analyserNode;
 let input;
+let stream;
+let source;
+
+async function listarMicrofones() {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const select = document.getElementById("selectMicrofone");
+  select.innerHTML = "";
+  devices.forEach(d => {
+    if (d.kind === "audioinput") {
+      const option = document.createElement("option");
+      option.value = d.deviceId;
+      option.textContent = d.label || `Microfone ${select.length + 1}`;
+      select.appendChild(option);
+    }
+  });
+}
 
 async function iniciarDeteccao() {
   await Tone.start(); // Libera AudioContext
 
   if (!audioContext) audioContext = new AudioContext();
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  const source = audioContext.createMediaStreamSource(stream);
+
+  const select = document.getElementById("selectMicrofone");
+  const deviceId = select.value;
+
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+  }
+
+  stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId } });
+  source = audioContext.createMediaStreamSource(stream);
   analyserNode = audioContext.createAnalyser();
 
   // Ganho extra
@@ -93,7 +117,7 @@ async function iniciarDeteccao() {
 
     // Detectar pitch
     const [pitch, clarity] = pitchDetector.findPitch(input);
-    if (pitch > 0 && clarity > 0.1) { // qualquer som falado
+    if (pitch > 0 && clarity > 0.05) {
       const nota = freqParaNota(pitch);
       document.getElementById("notaCantada").innerText = `Nota cantada: ${nota}`;
     } else {
@@ -119,9 +143,10 @@ function freqParaNota(freq) {
 }
 
 // ==========================
-// Botão iniciar detecção
+// Inicialização
 // ==========================
 document.getElementById("btnComecar").addEventListener("click", iniciarDeteccao);
+listarMicrofones();
 
 // ==========================
 // Músicas exemplo
