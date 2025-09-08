@@ -69,7 +69,8 @@ let audioCtx, analyserNode, mediaStreamSource, gainNode, detector, intervalo;
 // Começar e parar detecção
 // ==========================
 btnComecar.addEventListener("click", async () => {
-  audioCtx = new AudioContext();
+  if (!audioCtx) audioCtx = new AudioContext();
+
   analyserNode = audioCtx.createAnalyser();
   analyserNode.fftSize = 4096;
 
@@ -92,7 +93,7 @@ btnComecar.addEventListener("click", async () => {
     if (clarity > 0.85 && pitch) {
       const nota = freqParaNota(pitch);
       notaCantada.innerText = `Nota cantada: ${nota} (${pitch.toFixed(1)} Hz)`;
-      highlightPiano(nota.split(" \\ ")[0], false); // sem animação
+      highlightPiano(nota.split(" \\ ")[0], false);
     } else {
       notaCantada.innerText = "Nota cantada: --";
       clearPianoHighlight();
@@ -174,12 +175,26 @@ for (let oitava = 2; oitava <= 6; oitava++) {
     tecla.innerText = notaCompleta;
     tecla.dataset.nota = notaCompleta;
 
-    tecla.addEventListener("mousedown", () => {
+    // ======= Funções de toque =======
+    function tocarNota() {
+      if (!audioCtx) audioCtx = new Tone.Context();
       synth.triggerAttack(notaCompleta);
-      highlightPiano(notaCompleta, false); // sem animação
-    });
-    tecla.addEventListener("mouseup", () => synth.triggerRelease());
-    tecla.addEventListener("mouseleave", () => synth.triggerRelease());
+      highlightPiano(notaCompleta, false);
+    }
+
+    function soltarNota() {
+      synth.triggerRelease();
+      clearPianoHighlight();
+    }
+
+    // Eventos Desktop
+    tecla.addEventListener("mousedown", tocarNota);
+    tecla.addEventListener("mouseup", soltarNota);
+    tecla.addEventListener("mouseleave", soltarNota);
+
+    // Eventos Mobile
+    tecla.addEventListener("touchstart", (e) => { e.preventDefault(); tocarNota(); }, { passive: false });
+    tecla.addEventListener("touchend", (e) => { e.preventDefault(); soltarNota(); }, { passive: false });
 
     pianoContainer.appendChild(tecla);
   });
@@ -194,11 +209,7 @@ function highlightPiano(nota, anim = true) {
   if (tecla) {
     if (!anim) tecla.style.transition = "none";
     tecla.classList.add("tecla-ativa");
-    if (!anim) {
-      setTimeout(() => {
-        tecla.style.transition = "";
-      }, 50);
-    }
+    if (!anim) setTimeout(() => { tecla.style.transition = ""; }, 50);
   }
 }
 
