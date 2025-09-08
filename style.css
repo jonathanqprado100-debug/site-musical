@@ -1,7 +1,13 @@
 #piano {
   display: flex;
-  gap: 2px;
+  position: relative;
   margin: 20px;
+  height: 200px;
+}
+
+.oitava {
+  display: flex;
+  position: relative;
 }
 
 .key {
@@ -18,8 +24,8 @@
   width: 40px;
   height: 200px;
   background: white;
-  z-index: 1;
   position: relative;
+  z-index: 1;
 }
 
 .black {
@@ -28,6 +34,13 @@
   background: black;
   color: white;
   position: absolute;
-  margin-left: -15px;
   z-index: 2;
+  margin-left: -15px;
+}
+
+#nivelSinal {
+  height: 20px;
+  background-color: green;
+  width: 0%;
+  margin-top: 5px;
 }
