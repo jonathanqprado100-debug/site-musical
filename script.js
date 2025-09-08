@@ -1,16 +1,30 @@
-// Função para tocar uma nota rápida
-function tocarNota(nota) {
-  const synth = new Tone.Synth().toDestination();
-  synth.triggerAttackRelease(nota, "1s");
+// Piano interativo
+let synth;
+
+// Iniciar nota tocada no piano
+function iniciarNota(nota) {
+  synth = new Tone.Synth().toDestination();
+  synth.triggerAttack(nota);
+  document.getElementById("notaTocada").innerText = `Nota tocada: ${nota}`;
 }
 
-// Variáveis globais
+// Parar nota tocada
+function pararNota() {
+  if (synth) synth.triggerRelease();
+}
+
+// Função para tocar nota rápida (opcional)
+function tocarNota(nota) {
+  const s = new Tone.Synth().toDestination();
+  s.triggerAttackRelease(nota, "1s");
+}
+
+// Variáveis para nota cantada
 let audioContext;
 let analyserNode;
 let pitchDetector;
 let input;
 let stream;
-let synth;
 
 // Lista de microfones disponíveis
 async function listarMicrofones() {
@@ -32,7 +46,7 @@ async function listarMicrofones() {
   }
 }
 
-// Iniciar detecção com microfone selecionado
+// Iniciar detecção de nota cantada
 async function iniciarDeteccao(deviceId) {
   if (stream) {
     stream.getTracks().forEach(track => track.stop());
@@ -40,12 +54,23 @@ async function iniciarDeteccao(deviceId) {
 
   audioContext = new AudioContext();
   stream = await navigator.mediaDevices.getUserMedia({ 
-    audio: { deviceId: deviceId ? { exact: deviceId } : undefined } 
+    audio: { 
+      deviceId: deviceId ? { exact: deviceId } : undefined,
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false
+    } 
   });
   
   const source = audioContext.createMediaStreamSource(stream);
+
+  // Aumentando ganho do microfone
+  const gainNode = audioContext.createGain();
+  gainNode.gain.value = 3; // valor ajustável para aumentar sensibilidade
+  source.connect(gainNode);
+
   analyserNode = audioContext.createAnalyser();
-  source.connect(analyserNode);
+  gainNode.connect(analyserNode);
 
   pitchDetector = Pitchy.createPitchDetector(analyserNode.fftSize, audioContext.sampleRate);
   input = new Float32Array(analyserNode.fftSize);
@@ -53,14 +78,16 @@ async function iniciarDeteccao(deviceId) {
   atualizarNota();
 }
 
-// Atualizar nota detectada
+// Atualizar nota cantada
 function atualizarNota() {
   analyserNode.getFloatTimeDomainData(input);
   const [pitch, clarity] = pitchDetector.findPitch(input);
 
-  if (clarity > 0.9 && pitch > 0) {
+  if (clarity > 0.7 && pitch > 0) { // clareza menor para aumentar sensibilidade
     const nota = freqParaNota(pitch);
-    document.getElementById("notaAtual").innerText = `Nota atual: ${nota}`;
+    document.getElementById("notaCantada").innerText = `Nota cantada: ${nota}`;
+  } else {
+    document.getElementById("notaCantada").innerText = `Nota cantada: --`;
   }
 
   requestAnimationFrame(atualizarNota);
@@ -71,23 +98,12 @@ function freqParaNota(freq) {
   const notas = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
   const A4 = 440;
   const semitons = Math.round(12 * Math.log2(freq / A4));
-  const notaIndex = (semitons + 9) % 12; // A = index 9
+  const notaIndex = (semitons + 9) % 12;
   const oitava = 4 + Math.floor((semitons + 9) / 12);
   return notas[notaIndex] + oitava;
 }
 
-// Piano interativo
-function iniciarNota(nota) {
-  synth = new Tone.Synth().toDestination();
-  synth.triggerAttack(nota);
-  document.getElementById("notaAtual").innerText = `Nota atual: ${nota}`;
-}
-
-function pararNota() {
-  if (synth) synth.triggerRelease();
-}
-
-// Gerar piano automaticamente de C1 até B6
+// Gerar piano de C1 até B6
 function gerarPiano() {
   const notas = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
   const piano = document.getElementById("piano");
