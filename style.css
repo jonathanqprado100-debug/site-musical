@@ -1,46 +1,39 @@
-#piano {
-  display: flex;
-  position: relative;
-  margin: 20px;
-  height: 200px;
+#piano{
+  display:flex;
+  flex-wrap:wrap;
+  gap:2px;
+  margin:20px;
 }
 
-.oitava {
-  display: flex;
-  position: relative;
+.key{
+  display:flex;
+  justify-content:center;
+  align-items:flex-end;
+  font-size:10px;
+  cursor:pointer;
+  user-select:none;
+  border:1px solid #333;
+  position:relative;
 }
 
-.key {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  font-size: 10px;
-  cursor: pointer;
-  user-select: none;
-  border: 1px solid #333;
+.white{
+  width:40px;
+  height:200px;
+  background:white;
+  z-index:1;
 }
 
-.white {
-  width: 40px;
-  height: 200px;
-  background: white;
-  position: relative;
-  z-index: 1;
+.black{
+  width:30px;
+  height:120px;
+  background:black;
+  color:white;
+  margin-left:-15px;
+  margin-right:-15px;
+  z-index:2;
 }
 
-.black {
-  width: 30px;
-  height: 120px;
-  background: black;
-  color: white;
-  position: absolute;
-  z-index: 2;
-  margin-left: -15px;
-}
-
-#nivelSinal {
-  height: 20px;
-  background-color: green;
-  width: 0%;
-  margin-top: 5px;
+#medidor{
+  width:100%;
+  height:20px;
 }
