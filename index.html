@@ -4,9 +4,11 @@
   <meta charset="UTF-8">
   <title>Piano Interativo v2</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.min.js"></script>
-<script src="https://unpkg.com/ml5@1.2.2/dist/ml5.min.js"></script>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+  <!-- Bibliotecas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.min.js"></script>
+  <script src="https://unpkg.com/ml5@1.2.2/dist/ml5.min.js"></script> <!-- Mantido, mas não usado -->
 </head>
 <body>
 
@@ -18,22 +20,18 @@
   <button id="btnParar">⏹ Parar detecção</button>
   <p id="notaCantada">Nota cantada: --</p>
   <div id="nivelSinalContainer">
-    <div id="nivelSinal"></div>
+    <div id="nivelSinal" style="height: 10px; background: lime; width: 0%; transition: width 0.2s;"></div>
   </div>
 
   <h3>🎹 Piano Interativo</h3>
   <p id="notaTocada">Nota tocada: --</p>
-  <div id="piano"></div>
+  <div id="piano" style="display: flex; position: relative;"></div>
 
   <h2>🎵 Músicas</h2>
   <div id="menu-musicas"></div>
   <div id="conteudo-musica"></div>
 
+  <!-- Script principal -->
   <script src="script.js"></script>
 </body>
 </html>
-
-
-
-
-
