@@ -2,6 +2,7 @@ import { PitchDetector } from "https://esm.sh/pitchy@4";
 
 let audioCtx, analyserNode, mediaStreamSource, gainNode, detector, intervalo;
 const synth = new Tone.Synth().toDestination();
+let audioInicializado = false; // marca se o AudioContext já foi desbloqueado
 
 // ==========================
 // Elementos DOM
@@ -24,9 +25,10 @@ const btnTema = document.querySelectorAll(".btn-tema");
 // Inicializa AudioContext se ainda não iniciado
 // ==========================
 function iniciarAudio() {
-  if (!audioCtx) {
+  if (!audioInicializado) {
     audioCtx = new AudioContext();
     Tone.setContext(audioCtx);
+    audioInicializado = true;
   }
 }
 
@@ -110,8 +112,9 @@ btnParar.addEventListener("click", () => {
   clearInterval(intervalo);
   notaCantada.innerText = "Nota cantada: --";
   clearPianoHighlight();
-  if (audioCtx) audioCtx.close();
-  audioCtx = null; // permite reiniciar
+  // NO CELULAR, NÃO FECHAR O AUDIO CONTEXT
+  // if (audioCtx) audioCtx.close();
+  // audioCtx = null;
 });
 
 gainKnob.addEventListener("input", () => {
