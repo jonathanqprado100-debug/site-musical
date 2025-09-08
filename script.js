@@ -22,14 +22,28 @@ const aulaMusica = document.getElementById("aulaMusica");
 const btnTema = document.querySelectorAll(".btn-tema");
 
 // ==========================
-// Inicializa AudioContext (uma vez por gesto do usuário)
+// Desbloquear AudioContext (necessário para mobile)
 // ==========================
-function iniciarAudio() {
+function desbloquearAudioContext() {
   if (!audioInicializado) {
     audioCtx = new AudioContext();
     Tone.setContext(audioCtx);
     audioInicializado = true;
+
+    // toca som inaudível para garantir desbloqueio
+    const buffer = audioCtx.createBuffer(1, 1, 22050);
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+    source.start(0);
   }
+}
+
+// ==========================
+// Inicializa AudioContext se ainda não iniciado
+// ==========================
+function iniciarAudio() {
+  desbloquearAudioContext();
 }
 
 // ==========================
@@ -73,7 +87,7 @@ btnTema.forEach(btn => {
 // Começar detecção
 // ==========================
 async function iniciarDeteccao() {
-  if (!audioInicializado) iniciarAudio();
+  iniciarAudio();
 
   analyserNode = audioCtx.createAnalyser();
   analyserNode.fftSize = 4096;
@@ -116,9 +130,7 @@ btnParar.addEventListener("click", () => {
   clearPianoHighlight();
 });
 
-// ==========================
-// Controle de ganho
-// ==========================
+// Ajuste de ganho
 gainKnob.addEventListener("input", () => {
   if (gainNode) gainNode.gain.value = parseFloat(gainKnob.value);
 });
@@ -137,17 +149,19 @@ function freqParaNota(freq) {
 }
 
 // ==========================
-// Gera tabela de notas
+// Gera notas por oitava
 // ==========================
 function gerarTabelaNotas() {
   const notasEN = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
   const notasPT = ["Dó","Dó#","Ré","Ré#","Mi","Fá","Fá#","Sol","Sol#","Lá","Lá#","Si"];
+
   for (let oitava = 1; oitava <= 7; oitava++) {
     const card = document.createElement("div");
     card.classList.add("oitava-card");
     const titulo = document.createElement("h3");
     titulo.innerText = `Oitava ${oitava}`;
     card.appendChild(titulo);
+
     notasEN.forEach((nota, i) => {
       const notaCard = document.createElement("div");
       notaCard.classList.add("nota-card");
@@ -155,13 +169,15 @@ function gerarTabelaNotas() {
       notaCard.innerText = `${nota}${oitava} - ${notasPT[i]} ${oitava}`;
       card.appendChild(notaCard);
     });
+
     oitavasContainer.appendChild(card);
   }
 }
+
 gerarTabelaNotas();
 
 // ==========================
-// Piano funcional (mobile e desktop)
+// Piano funcional (desktop e mobile)
 // ==========================
 const pianoContainer = document.getElementById("pianoContainer");
 const notasSynth = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
@@ -175,7 +191,7 @@ for (let oitava = 2; oitava <= 6; oitava++) {
     tecla.dataset.nota = notaCompleta;
 
     function tocarNota() {
-      iniciarAudio(); // desbloqueia AudioContext no mobile
+      iniciarAudio(); // desbloqueia AudioContext se ainda não feito
       synth.triggerAttack(notaCompleta);
       highlightPiano(notaCompleta, false);
     }
@@ -214,3 +230,9 @@ function clearPianoHighlight() {
     t.style.transition = "";
   });
 }
+
+// ==========================
+// Desbloqueio inicial via gesto do usuário
+// ==========================
+document.body.addEventListener("touchstart", desbloquearAudioContext, { once: true });
+document.body.addEventListener("mousedown", desbloquearAudioContext, { once: true });
