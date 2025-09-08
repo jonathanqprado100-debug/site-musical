@@ -152,6 +152,29 @@ window.addEventListener("DOMContentLoaded", () => {
   // ==========================
   // Músicas exemplo
   // ==========================
-  const musicas = {
+ const musicas = {
     "Música 1": "C4 – 'Exemplo letra 1...'\nD4 – 'Segunda linha...'",
-    "Música 
+    "Música 2": "E4 – 'Exemplo letra 2...'\nF4 – 'Segunda linha...'",
+    "Música 3": "G4 – 'Mais uma linha...'\nA4 – 'Finalizando exemplo...'"
+  };
+
+  function mostrarMenuMusicas() {
+    const menu = document.getElementById("menu-musicas");
+    menu.innerHTML = "";
+    Object.keys(musicas).forEach(nome => {
+      const btn = document.createElement("button");
+      btn.textContent = nome;
+      btn.onclick = () => mostrarMusica(nome);
+      menu.appendChild(btn);
+    });
+  }
+
+  function mostrarMusica(nome) {
+    const div = document.getElementById("conteudo-musica");
+    div.innerHTML = `<h3>${nome}</h3><pre>${musicas[nome]}</pre>`;
+  }
+
+  mostrarMenuMusicas();
+});
+
+
