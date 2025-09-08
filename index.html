@@ -188,10 +188,10 @@
         const [pitch, clarity] = detector.findPitch(input, audioCtx.sampleRate);
         if (clarity > 0.85 && pitch) {
           const nota = freqParaNota(pitch);
-          notaCantada.innerText = `Nota cantada: ${nota} (${pitch.toFixed(1)} Hz)`;
+          notaCantada.innerText = ` ${nota} (${pitch.toFixed(1)} Hz)`;
           highlightPiano(nota.split(" \\ ")[0], false);
         } else {
-          notaCantada.innerText = "Nota cantada: --";
+          notaCantada.innerText = "";
           clearPianoHighlight();
         }
         const rms = Math.sqrt(input.reduce((sum, val) => sum + val * val, 0) / input.length);
@@ -201,7 +201,7 @@
 
     btnParar.addEventListener("click", () => {
       clearInterval(intervalo);
-      notaCantada.innerText = "Nota cantada: --";
+      notaCantada.innerText = "-";
       clearPianoHighlight();
     });
 
@@ -215,19 +215,25 @@
 
     <!-- Interface Piano -->
     <div id="interfacePrincipal" style="display:none;">
-      <h1 id="tituloPiano" style="text-align:center; display:none;">🎤 Detecção de Voz com Piano</h1>
+      <h1 id="tituloPiano" style="text-align:center; display:none;">🎤 Afinador de Canto | Piano 🎹</h1>
+
       <div style="display:flex; justify-content:center; gap:10px; margin-bottom:15px;">
         <button class="btn-aula btn-tema">🌗 Alternar Tema</button>
         <button id="btnIrAula" class="btn-aula">🎓 Ir para a Aula</button>
       </div>
 
       <section class="microfone">
-        <h2>Detectar nota cantada</h2>
+        <h2>Afinador</h2>
+
         <div class="controls">
-          <button id="btnComecar" class="btn-aula">Começar detecção</button>
-          <button id="btnParar" class="btn-aula">Parar detecção</button>
+        <button id="btnComecar" class="btn-aula">🎤 Cantar</button>
+        <button id="btnParar" class="btn-aula">🚫 Stop</button>
         </div>
-        <p id="notaCantada">Nota cantada: --</p>
+        <div class="afinador-box">
+  
+  <div id="notaCantada">--</div>
+</div>
+
         <label for="gainKnob">Ajuste de ganho do microfone</label>
         <div id="nivelSinalContainer">
           <input id="gainKnob" type="range" min="0" max="2" step="0.01" value="1">
