@@ -1,92 +1,210 @@
-const PitchDetector = window.PitchDetector;
-window.addEventListener("DOMContentLoaded", async () => {
-  console.log("🎬 DOM carregado");
+import { PitchDetector } from "https://esm.sh/pitchy@4";
 
-  // Aguarda até que PitchDetector esteja disponível
-  while (!window.PitchDetector) {
-    await new Promise(resolve => setTimeout(resolve, 50));
-  }
+// ==========================
+// Elementos DOM
+// ==========================
+const btnComecar = document.getElementById("btnComecar");
+const btnParar = document.getElementById("btnParar");
+const notaCantada = document.getElementById("notaCantada");
+const gainKnob = document.getElementById("gainKnob");
+const nivelSinal = document.getElementById("nivelSinal");
+const oitavasContainer = document.getElementById("oitavasContainer");
 
-  const PitchDetector = window.PitchDetector;
+// Navegação da aula
+const btnIrAula = document.getElementById("btnIrAula");
+const btnVoltar = document.getElementById("btnVoltar");
+const interfacePrincipal = document.getElementById("interfacePrincipal");
+const aulaMusica = document.getElementById("aulaMusica");
 
+// Botões de alternância de tema
+const btnTema = document.querySelectorAll(".btn-tema");
 
-window.addEventListener("DOMContentLoaded", () => {
-  console.log("🎬 DOM carregado");
+// ==========================
+// Variáveis de fade
+// ==========================
+const tempoFade = 500;
 
-  // ==========================
-  // Frequência para nota
-  // ==========================
-  function freqParaNota(freq) {
-    if (!freq || freq <= 0) return '--';
-    const notas = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    const A4 = 440;
-    const semitons = Math.round(12 * Math.log2(freq / A4));
-    const notaIndex = (semitons + 9) % 12;
-    const oitava = 4 + Math.floor((semitons + 9) / 12);
-    return notas[notaIndex] + oitava;
-  }
+interfacePrincipal.classList.add("fade");
+aulaMusica.classList.add("fade", "hidden");
+aulaMusica.style.display = "block";
 
-  // ==========================
-  // Microfone e Pitchy
-  // ==========================
-  let audioContext, analyser, dataArray, sourceNode, gainNode, detector, detectando = false;
-
-  document.getElementById("btnComecar").addEventListener("click", async () => {
-    if (detectando) return;
-    detectando = true;
-    console.log("🎤 Iniciando detecção...");
-
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 2048;
-
-    gainNode = audioContext.createGain();
-    gainNode.gain.value = parseFloat(document.getElementById("gainKnob").value);
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      sourceNode = audioContext.createMediaStreamSource(stream);
-      sourceNode.connect(gainNode).connect(analyser);
-
-      dataArray = new Float32Array(analyser.fftSize);
-      detector = PitchDetector.forFloat32Array(analyser.fftSize);
-
-   
-
-  document.getElementById("btnParar").addEventListener("click", () => {
-    detectando = false;
-    if (sourceNode) sourceNode.disconnect();
-    if (audioContext) audioContext.close();
-    document.getElementById("notaCantada").innerText = 'Nota cantada: --';
-    document.getElementById("nivelSinal").style.width = '0%';
-    console.log("🛑 Detecção encerrada");
-  });
-
-  document.getElementById("gainKnob").addEventListener("input", (e) => {
-    if (gainNode) gainNode.gain.value = parseFloat(e.target.value);
-    console.log(`🎚️ Ganho ajustado: ${e.target.value}`);
-  });
-
-  function detectarPitch() {
-    if (!detectando) return;
-
-    analyser.getFloatTimeDomainData(dataArray);
-    const [pitch, clarity] = detector.findPitch(dataArray, audioContext.sampleRate);
-
-    const nivelSinal = document.getElementById("nivelSinal");
-    const rms = Math.sqrt(dataArray.reduce((sum, val) => sum + val * val, 0) / dataArray.length);
-    nivelSinal.style.width = `${Math.min(rms * 300, 100)}%`;
-
-    if (clarity > 0.9 && pitch > 65 && pitch < 2000) {
-      const nota = freqParaNota(pitch);
-      document.getElementById("notaCantada").innerText = `Nota cantada: ${nota} (${pitch.toFixed(1)} Hz)`;
-      console.log(`🎶 Pitch detectado: ${pitch.toFixed(1)} Hz | Nota: ${nota} | Clareza: ${clarity.toFixed(2)}`);
-    } else {
-      document.getElementById("notaCantada").innerText = 'Nota cantada: --';
-    }
-
-    requestAnimationFrame(detectarPitch);
-  }
+// ==========================
+// Navegação com fade
+// ==========================
+btnIrAula.addEventListener("click", () => {
+  interfacePrincipal.classList.add("hidden");
+  setTimeout(() => {
+    interfacePrincipal.style.display = "none";
+    aulaMusica.style.display = "block";
+    void aulaMusica.offsetWidth;
+    aulaMusica.classList.remove("hidden");
+  }, tempoFade);
 });
 
+btnVoltar.addEventListener("click", () => {
+  aulaMusica.classList.add("hidden");
+  setTimeout(() => {
+    aulaMusica.style.display = "none";
+    interfacePrincipal.style.display = "block";
+    void interfacePrincipal.offsetWidth;
+    interfacePrincipal.classList.remove("hidden");
+  }, tempoFade);
+});
 
+// ==========================
+// Alternar tema claro/escuro
+// ==========================
+btnTema.forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.body.classList.toggle("light-theme");
+  });
+});
+
+// ==========================
+// Variáveis de áudio
+// ==========================
+let audioCtx, analyserNode, mediaStreamSource, gainNode, detector, intervalo;
+
+// ==========================
+// Começar e parar detecção
+// ==========================
+btnComecar.addEventListener("click", async () => {
+  audioCtx = new AudioContext();
+  analyserNode = audioCtx.createAnalyser();
+  analyserNode.fftSize = 4096;
+
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  mediaStreamSource = audioCtx.createMediaStreamSource(stream);
+
+  gainNode = audioCtx.createGain();
+  gainNode.gain.value = parseFloat(gainKnob.value);
+
+  mediaStreamSource.connect(gainNode).connect(analyserNode);
+
+  detector = PitchDetector.forFloat32Array(analyserNode.fftSize);
+
+  intervalo = setInterval(() => {
+    const input = new Float32Array(analyserNode.fftSize);
+    analyserNode.getFloatTimeDomainData(input);
+
+    const [pitch, clarity] = detector.findPitch(input, audioCtx.sampleRate);
+
+    if (clarity > 0.85 && pitch) {
+      const nota = freqParaNota(pitch);
+      notaCantada.innerText = `Nota cantada: ${nota} (${pitch.toFixed(1)} Hz)`;
+      highlightPiano(nota.split(" \\ ")[0], false); // sem animação
+    } else {
+      notaCantada.innerText = "Nota cantada: --";
+      clearPianoHighlight();
+    }
+
+    const rms = Math.sqrt(input.reduce((sum, val) => sum + val * val, 0) / input.length);
+    nivelSinal.style.width = `${Math.min(rms * 300, 100)}%`;
+  }, 100);
+});
+
+btnParar.addEventListener("click", () => {
+  clearInterval(intervalo);
+  notaCantada.innerText = "Nota cantada: --";
+  clearPianoHighlight();
+  if (audioCtx) audioCtx.close();
+});
+
+gainKnob.addEventListener("input", () => {
+  if (gainNode) gainNode.gain.value = parseFloat(gainKnob.value);
+});
+
+// ==========================
+// Função: frequência -> nota
+// ==========================
+function freqParaNota(freq) {
+  const notasEN = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const notasPT = ["Dó","Dó#","Ré","Ré#","Mi","Fá","Fá#","Sol","Sol#","Lá","Lá#","Si"];
+  if (!freq || freq <= 0) return '--';
+  const semitons = Math.round(12 * Math.log2(freq / 440));
+  const notaIndex = (semitons + 9 + 120) % 12;
+  const oitava = 4 + Math.floor((semitons + 9) / 12);
+  return `${notasEN[notaIndex]}${oitava} \\ ${notasPT[notaIndex]} ${oitava}`;
+}
+
+// ==========================
+// Gera tabela de notas C1 - C7
+// ==========================
+function gerarTabelaNotas() {
+  const notasEN = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const notasPT = ["Dó","Dó#","Ré","Ré#","Mi","Fá","Fá#","Sol","Sol#","Lá","Lá#","Si"];
+
+  for (let oitava = 1; oitava <= 7; oitava++) {
+    const card = document.createElement("div");
+    card.classList.add("oitava-card");
+
+    const titulo = document.createElement("h3");
+    titulo.innerText = `Oitava ${oitava}`;
+    card.appendChild(titulo);
+
+    notasEN.forEach((nota, i) => {
+      const notaCard = document.createElement("div");
+      notaCard.classList.add("nota-card");
+      notaCard.classList.add(nota.includes("#") ? "nota-sustenida" : "nota-natural");
+      notaCard.innerText = `${nota}${oitava} - ${notasPT[i]} ${oitava}`;
+      card.appendChild(notaCard);
+    });
+
+    oitavasContainer.appendChild(card);
+  }
+}
+
+gerarTabelaNotas();
+
+// ==========================
+// Piano funcional C2-C6
+// ==========================
+const pianoContainer = document.getElementById("pianoContainer");
+const notasSynth = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const synth = new Tone.Synth().toDestination();
+
+for (let oitava = 2; oitava <= 6; oitava++) {
+  notasSynth.forEach(nota => {
+    const notaCompleta = `${nota}${oitava}`;
+    const tecla = document.createElement("div");
+    tecla.classList.add("tecla");
+    if (nota.includes("#")) tecla.classList.add("tecla-sustenida");
+    else tecla.classList.add("tecla-natural");
+
+    tecla.innerText = notaCompleta;
+    tecla.dataset.nota = notaCompleta;
+
+    tecla.addEventListener("mousedown", () => {
+      synth.triggerAttack(notaCompleta);
+      highlightPiano(notaCompleta, false); // sem animação
+    });
+    tecla.addEventListener("mouseup", () => synth.triggerRelease());
+    tecla.addEventListener("mouseleave", () => synth.triggerRelease());
+
+    pianoContainer.appendChild(tecla);
+  });
+}
+
+// ==========================
+// Funções de destaque piano
+// ==========================
+function highlightPiano(nota, anim = true) {
+  clearPianoHighlight();
+  const tecla = document.querySelector(`.tecla[data-nota="${nota}"]`);
+  if (tecla) {
+    if (!anim) tecla.style.transition = "none";
+    tecla.classList.add("tecla-ativa");
+    if (!anim) {
+      setTimeout(() => {
+        tecla.style.transition = "";
+      }, 50);
+    }
+  }
+}
+
+function clearPianoHighlight() {
+  document.querySelectorAll(".tecla").forEach(t => {
+    t.classList.remove("tecla-ativa");
+    t.style.transition = "";
+  });
+}
