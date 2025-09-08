@@ -1,4 +1,4 @@
-import { PitchDetector } from "https://esm.sh/pitchy@4";
+const PitchDetector = window.PitchDetector;
 
 window.addEventListener("DOMContentLoaded", () => {
   console.log("🎬 DOM carregado");
@@ -166,3 +166,4 @@ window.addEventListener("DOMContentLoaded", () => {
 
   mostrarMenuMusicas();
 });
+
