@@ -19,20 +19,20 @@ function gerarPiano() {
   const notas = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
   const piano = document.getElementById("piano");
 
-  for(let oitava=2; oitava<=6; oitava++){
-    notas.forEach((n)=> {
-      const nota = n+oitava;
+  for (let oitava = 2; oitava <= 6; oitava++) {
+    notas.forEach((n) => {
+      const nota = n + oitava;
       const key = document.createElement("div");
       key.classList.add("key");
-      if(n.includes("#")) key.classList.add("black"); else key.classList.add("white");
+      if (n.includes("#")) key.classList.add("black"); else key.classList.add("white");
       key.dataset.nota = nota;
       key.textContent = n;
 
-      key.addEventListener("mousedown",()=>iniciarNota(nota));
-      key.addEventListener("mouseup",pararNota);
-      key.addEventListener("mouseleave",pararNota);
-      key.addEventListener("touchstart",()=>iniciarNota(nota));
-      key.addEventListener("touchend",pararNota);
+      key.addEventListener("mousedown", () => iniciarNota(nota));
+      key.addEventListener("mouseup", pararNota);
+      key.addEventListener("mouseleave", pararNota);
+      key.addEventListener("touchstart", () => iniciarNota(nota));
+      key.addEventListener("touchend", pararNota);
 
       piano.appendChild(key);
     });
@@ -40,9 +40,9 @@ function gerarPiano() {
 
   const whiteKeys = Array.from(document.querySelectorAll('.white'));
   const blackKeys = Array.from(document.querySelectorAll('.black'));
-  blackKeys.forEach((black, idx)=>{
+  blackKeys.forEach((black, idx) => {
     const leftWhite = whiteKeys[idx];
-    if(leftWhite) black.style.left = `${leftWhite.offsetLeft + 30}px`;
+    if (leftWhite) black.style.left = `${leftWhite.offsetLeft + 30}px`;
   });
 }
 
@@ -56,41 +56,41 @@ let detectando = false;
 let audioStream;
 
 document.getElementById("btnComecar").addEventListener("click", async () => {
-  if(detectando) return;
+  if (detectando) return;
   detectando = true;
 
   await Tone.start();
 
-navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-  audioStream = stream;
-  pitch = ml5.pitchDetection(
-    'https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/pitch-detection/crepe/',
-    stream,
-    modelLoaded
-  );
-}).catch(err => {
-  console.error("Erro ao acessar o microfone:", err);
-  alert("Não foi possível acessar o microfone.");
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+    audioStream = stream;
+    pitch = ml5.pitchDetection(
+      'https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/pitch-detection/crepe/',
+      stream,
+      modelLoaded
+    );
+  }).catch(err => {
+    console.error("Erro ao acessar o microfone:", err);
+    alert("Não foi possível acessar o microfone.");
+  });
 });
-
 
 document.getElementById("btnParar").addEventListener("click", () => {
   detectando = false;
-  if(audioStream){
+  if (audioStream) {
     audioStream.getTracks().forEach(track => track.stop());
   }
   document.getElementById("notaCantada").innerText = 'Nota cantada: --';
   document.getElementById("nivelSinal").style.width = '0%';
 });
 
-function modelLoaded(){
+function modelLoaded() {
   detectar();
 }
 
-function detectar(){
-  if(!detectando) return;
-  pitch.getPitch((err, freq)=>{
-    if(freq){
+function detectar() {
+  if (!detectando) return;
+  pitch.getPitch((err, freq) => {
+    if (freq) {
       document.getElementById("notaCantada").innerText = 'Nota cantada: ' + freqParaNota(freq);
       document.getElementById("nivelSinal").style.width = '100%';
     } else {
@@ -104,14 +104,14 @@ function detectar(){
 // ==========================
 // Frequência para nota
 // ==========================
-function freqParaNota(freq){
-  if(!freq || freq<=0) return '--';
+function freqParaNota(freq) {
+  if (!freq || freq <= 0) return '--';
   const notas = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
   const A4 = 440;
-  const semitons = Math.round(12*Math.log2(freq/A4));
-  const notaIndex = (semitons+9)%12;
-  const oitava = 4+Math.floor((semitons+9)/12);
-  return notas[notaIndex]+oitava;
+  const semitons = Math.round(12 * Math.log2(freq / A4));
+  const notaIndex = (semitons + 9) % 12;
+  const oitava = 4 + Math.floor((semitons + 9) / 12);
+  return notas[notaIndex] + oitava;
 }
 
 // ==========================
@@ -122,23 +122,20 @@ let musicas = {
   "Música 2": "E4 – 'Exemplo letra 2...'\nF4 – 'Segunda linha...'"
 };
 
-function mostrarMenuMusicas(){
+function mostrarMenuMusicas() {
   const menu = document.getElementById("menu-musicas");
   menu.innerHTML = "";
-  Object.keys(musicas).forEach(nome=>{
+  Object.keys(musicas).forEach(nome => {
     const btn = document.createElement("button");
     btn.textContent = nome;
-    btn.onclick = ()=>mostrarMusica(nome);
+    btn.onclick = () => mostrarMusica(nome);
     menu.appendChild(btn);
   });
 }
 
-function mostrarMusica(nome){
+function mostrarMusica(nome) {
   const div = document.getElementById("conteudo-musica");
-  div.innerHTML = `<h3>${nome}</h3><pre>${musicas[nome]}</pre>`;
+  div.innerHTML = `<h3>v1 - ${nome}</h3><pre>${musicas[nome]}</pre>`;
 }
 
 mostrarMenuMusicas();
-
-
-
