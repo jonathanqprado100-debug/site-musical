@@ -1,0 +1,46 @@
+#piano {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin: 20px;
+}
+
+.oitava {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.teclas {
+  display: flex;
+  position: relative;
+  height: 200px;
+}
+
+.key {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  font-size: 10px;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid #333;
+}
+
+.white {
+  width: 40px;
+  height: 200px;
+  background: white;
+  z-index: 1;
+}
+
+.black {
+  width: 30px;
+  height: 120px;
+  background: black;
+  color: white;
+  position: relative;
+  margin-left: -15px;
+  margin-right: -15px;
+  z-index: 2;
+}

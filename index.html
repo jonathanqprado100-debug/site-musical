@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Piano Interativo</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.39/Tone.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pitchy@latest/dist/pitchy.min.js"></script>
+</head>
+<body>
+
+  <h2>🎼 Piano A1 até A6</h2>
+  <p>Clique ou toque nas teclas para ouvir as notas.</p>
+
+  <h3>Detectar nota cantada</h3>
+  <button onclick="detectarNota()">🎤 Começar</button>
+  <p id="notaAtual">Nota detectada: --</p>
+
+  <h3>🎹 Piano Interativo</h3>
+  <div id="piano"></div>
+
+  <h2>🎵 Músicas</h2>
+  <div id="menu-musicas"></div>
+  <div id="conteudo-musica"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
